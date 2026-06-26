@@ -16,17 +16,12 @@ Docker na sua máquina**.
 
 ---
 
-## Passo 0 — Subir o código no GitHub
+## Passo 0 — Código no GitHub ✅ (já feito)
 
-Na pasta do projeto (já está com git inicializado e commitado):
+O código já está publicado em (repositório privado):
+**https://github.com/gabrielbenuv/assessor-gf** (branch `main`).
 
-```bash
-# 1. Crie um repositório vazio no GitHub (ex: assessor-gf), SEM README.
-# 2. Conecte e envie:
-git remote add origin https://github.com/SEU_USUARIO/assessor-gf.git
-git branch -M main
-git push -u origin main
-```
+Para atualizações futuras, basta `git push` que o EasyPanel re-deploya.
 
 ---
 
@@ -42,8 +37,9 @@ git push -u origin main
 ---
 
 ## Passo 2 — Criar o App (a partir do GitHub)
-1. **+ Service** → **App**. Nome: `assessor`.
-2. Em **Source**, escolha **GitHub** e selecione o repositório `assessor-gf` (branch `main`).
+1. **+ Service** → **App**. Nome: `assessor-app`.
+2. Em **Source**, escolha **GitHub**, conecte sua conta (autorize o EasyPanel a acessar o
+   repositório `gabrielbenuv/assessor-gf`) e selecione a branch `main`.
 3. Em **Build**, escolha **Dockerfile** (o EasyPanel detecta o `Dockerfile` automaticamente).
 4. Em **Port / Network**, deixe a porta **3000** (é a que o app expõe).
 5. **Ainda não faça deploy** — primeiro configure as variáveis (Passo 3).
@@ -54,26 +50,28 @@ git push -u origin main
 Na aba **Environment** do app `assessor`, cole (ajustando o que estiver em MAIÚSCULAS):
 
 ```env
-DATABASE_URL=postgresql://postgres:SUA_SENHA@assessor-db:5432/postgres
+DATABASE_URL=COLE_A_CONNECTION_URL_DO_PASSO_1
 APP_SECRET=3e5f75091e127953c93474afe7334153ab33eeaa67f144992ff01d1c0b9b9538
 ADMIN_EMAIL=pedrodantas@grupochess.com.br
 ADMIN_PASSWORD=TROQUE_POR_UMA_SENHA_FORTE
 TZ=America/Sao_Paulo
-APP_URL=https://PREENCHER_NO_PASSO_4
+APP_URL=https://assessor.37.27.82.91.sslip.io
 ```
 
-> O `DATABASE_URL` deve ser **a mesma string** do Passo 1.
+> O `DATABASE_URL` deve ser **a mesma string** que o EasyPanel mostra no serviço Postgres (Passo 1).
 > O `APP_SECRET` acima já é uma chave aleatória válida (pode usar ou gerar outra).
 
 ---
 
-## Passo 4 — Domínio (grátis do EasyPanel)
-1. Na aba **Domains** do app, clique para **adicionar/gerar um domínio do EasyPanel**
-   (ele cria algo como `assessor-xxxx.SEUSERVIDOR.easypanel.host` com HTTPS automático).
-2. Copie essa URL e volte em **Environment**: ajuste
+## Passo 4 — Domínio (grátis, via sslip.io)
+Como o servidor usa IP puro (37.27.82.91), usamos o **sslip.io** para ter uma URL com HTTPS
+sem comprar domínio.
+1. Na aba **Domains** do app `assessor-app` → **Add Domain**:
    ```
-   APP_URL=https://assessor-xxxx.SEUSERVIDOR.easypanel.host
+   assessor.37.27.82.91.sslip.io
    ```
+   - Porta: **3000** · HTTPS/SSL: **ativado** (Let's Encrypt).
+2. O `APP_URL` no Environment já está como `https://assessor.37.27.82.91.sslip.io`.
 3. Salve.
 
 ---
@@ -93,7 +91,7 @@ APP_URL=https://PREENCHER_NO_PASSO_4
    Key, instância)** e salve.
 2. Na sua **Evolution**, configure o **webhook** da instância `assessor` para:
    ```
-   https://SEU-DOMINIO-EASYPANEL/api/webhook
+   https://assessor.37.27.82.91.sslip.io/api/webhook
    ```
    Evento: **messages.upsert** (mensagens recebidas).
 3. No painel → **Números autorizados** → cadastre o **seu número** (com DDI+DDD).
@@ -106,7 +104,7 @@ Para o relatório mensal e os lembretes (cartão/contas fixas) dispararem:
 1. EasyPanel → no app, aba **Scheduled Tasks** (ou um cron do sistema).
 2. Comando, **de hora em hora** (`0 * * * *`):
    ```
-   curl -s "https://SEU-DOMINIO-EASYPANEL/api/cron/run?key=3e5f75091e127953c93474afe7334153ab33eeaa67f144992ff01d1c0b9b9538"
+   curl -s "https://assessor.37.27.82.91.sslip.io/api/cron/run?key=3e5f75091e127953c93474afe7334153ab33eeaa67f144992ff01d1c0b9b9538"
    ```
    (use o mesmo valor do `APP_SECRET`). O app decide a hora/dia certos conforme a aba **Notificações**.
 
@@ -115,7 +113,7 @@ Para o relatório mensal e os lembretes (cartão/contas fixas) dispararem:
 ## Passo 8 — Google Calendar (opcional)
 1. No Google Cloud, crie credenciais **OAuth 2.0** e adicione o redirect URI:
    ```
-   https://SEU-DOMINIO-EASYPANEL/api/google/callback
+   https://assessor.37.27.82.91.sslip.io/api/google/callback
    ```
 2. No painel → **Integrações** → cole Client ID/Secret → **Conectar Google**.
 
