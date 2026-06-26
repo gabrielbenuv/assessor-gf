@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.env
+.env.local
+prisma/dev.db
+*.db
+*.log
+.DS_Store
+README.md
+PLANO_DE_ACAO.md

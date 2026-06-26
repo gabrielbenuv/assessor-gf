@@ -1,0 +1,168 @@
+// Assessor GF — schema Prisma (FONTE ÚNICA)
+// LOCAL: provider = "sqlite" (roda sem Docker).
+// PRODUÇÃO (Docker/EasyPanel): o build roda scripts/gen-prod-schema.mjs, que gera
+//   prisma/schema.prod.prisma com provider="postgresql" automaticamente. NÃO precisa editar à mão.
+// O schema é portável: dinheiro em centavos (Int), sem enums/arrays nativos.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Bancos / contas / carteiras
+model Banco {
+  id                String      @id @default(cuid())
+  nome              String      @unique
+  tipo              String      @default("conta_corrente") // conta_corrente | poupanca | carteira
+  saldoInicialCents Int         @default(0)
+  saldoInicialData  DateTime    @default(now())
+  contaSalario      Boolean     @default(false) // conta padrão onde cai o salário/entradas
+  contaReceber      Boolean     @default(false) // conta candidata a receber entradas (recebimentos)
+  ativo             Boolean     @default(true)
+  cartoes           Cartao[]
+  transacoes        Transacao[]
+  contasFixas       ContaFixa[]
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+}
+
+/// Cartões de crédito
+model Cartao {
+  id            String      @id @default(cuid())
+  apelido       String      @unique
+  bandeira      String?
+  diaFechamento Int // dia do mês em que a fatura fecha
+  diaVencimento Int // dia do mês em que a fatura vence
+  limiteCents   Int?
+  ativo         Boolean     @default(true)
+  // Lembretes da fatura
+  lembreteFaturaAtivo     Boolean @default(true)
+  lembreteDiasAntes       Int     @default(5) // avisar X dias antes do vencimento
+  lembreteFechamentoAtivo Boolean @default(false) // avisar no dia que a fatura fecha
+  bancoId       String?
+  banco         Banco?      @relation(fields: [bancoId], references: [id], onDelete: SetNull)
+  transacoes    Transacao[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+/// Categorias de gasto / entrada
+model Categoria {
+  id          String      @id @default(cuid())
+  nome        String
+  tipo        String      @default("gasto") // gasto | entrada
+  emoji       String?
+  cor         String?
+  ativo       Boolean     @default(true)
+  transacoes  Transacao[]
+  contasFixas ContaFixa[]
+  createdAt   DateTime    @default(now())
+
+  @@unique([nome, tipo])
+}
+
+/// Lançamentos (gastos e entradas)
+model Transacao {
+  id             String     @id @default(cuid())
+  tipo           String // gasto | entrada
+  valorCents     Int
+  descricao      String
+  data           DateTime // data real do gasto/entrada
+  formaPagamento String     @default("dinheiro") // dinheiro | pix | debito | credito
+  faturaMes      String? // "YYYY-MM" — competência da fatura (apenas crédito)
+  pago           Boolean    @default(false) // p/ crédito: já foi pago?
+  pagoEm         DateTime?
+  origem         String     @default("manual") // texto | foto | audio | manual
+  rawInput       String? // texto original / transcrição / obs do recibo
+  categoriaId    String?
+  categoria      Categoria? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  bancoId        String?
+  banco          Banco?     @relation(fields: [bancoId], references: [id], onDelete: SetNull)
+  cartaoId       String?
+  cartao         Cartao?    @relation(fields: [cartaoId], references: [id], onDelete: SetNull)
+  contaFixaId    String?
+  contaFixa      ContaFixa? @relation(fields: [contaFixaId], references: [id], onDelete: SetNull)
+  createdAt      DateTime   @default(now())
+
+  @@index([data])
+  @@index([tipo])
+  @@index([cartaoId, faturaMes])
+  @@index([contaFixaId])
+}
+
+/// Eventos criados no Google Calendar (log)
+model EventoAgenda {
+  id            String   @id @default(cuid())
+  titulo        String
+  inicio        DateTime
+  fim           DateTime?
+  participantes String? // separado por vírgula
+  descricao     String?
+  googleEventId String?
+  googleLink    String?
+  createdAt     DateTime @default(now())
+}
+
+/// Números de WhatsApp autorizados a falar com a IA (whitelist)
+model NumeroAutorizado {
+  id        String   @id @default(cuid())
+  numero    String   @unique // só dígitos, formato E.164 (ex: 5511999998888)
+  apelido   String?
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+/// Configurações e chaves de integração (valores criptografados)
+model Config {
+  id        String   @id @default(cuid())
+  chave     String   @unique
+  valor     String // criptografado (AES-256-GCM)
+  updatedAt DateTime @updatedAt
+}
+
+/// Contas fixas / recorrentes (luz, água, aluguel, assinaturas...)
+model ContaFixa {
+  id                 String      @id @default(cuid())
+  nome               String      @unique
+  valorPrevistoCents Int? // valor esperado (opcional)
+  diaVencimento      Int
+  ativo              Boolean     @default(true)
+  usaPadrao          Boolean     @default(true) // usa o lembrete padrão global?
+  lembreteDiasAntes  Int? // se não usa padrão: avisar X dias antes (editável por conta)
+  categoriaId        String?
+  categoria          Categoria?  @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  bancoId            String? // conta padrão de pagamento (opcional)
+  banco              Banco?      @relation(fields: [bancoId], references: [id], onDelete: SetNull)
+  transacoes         Transacao[] // pagamentos lançados
+  createdAt          DateTime    @default(now())
+}
+
+/// Histórico de conversa por sessão (número de WhatsApp ou "simulador")
+/// — dá memória ao assessor para fazer perguntas de esclarecimento.
+model Mensagem {
+  id        String   @id @default(cuid())
+  sessao    String
+  role      String // user | assistant
+  conteudo  String
+  createdAt DateTime @default(now())
+
+  @@index([sessao, createdAt])
+}
+
+/// Preferências de notificação (linha única, id = "default")
+model Notificacao {
+  id                      String   @id @default("default")
+  relatorioMensalAtivo    Boolean  @default(true)
+  diaRelatorio            Int      @default(1)
+  horaEnvio               String   @default("09:00")
+  lembreteVencimentoAtivo Boolean  @default(true) // lembrete de contas fixas
+  diasAntes               Int      @default(0) // (legado) compatibilidade
+  contasFixasDiasAntes    Int      @default(3) // padrão global de dias antes p/ contas fixas
+  lembreteCartaoAtivo     Boolean  @default(true) // lembrete de fatura de cartão
+  resumoSemanalAtivo      Boolean  @default(false)
+  updatedAt               DateTime @updatedAt
+}

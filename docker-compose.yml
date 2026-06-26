@@ -1,0 +1,39 @@
+# Stack completa (app + Postgres) para rodar a imagem localmente OU servir de referência
+# para o EasyPanel. ATENÇÃO: para usar Postgres, troque em prisma/schema.prisma:
+#   provider = "sqlite"  ->  provider = "postgresql"
+# e rebuild a imagem.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: assessor
+      POSTGRES_PASSWORD: troque-esta-senha
+      POSTGRES_DB: assessor
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U assessor"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://assessor:troque-esta-senha@db:5432/assessor?schema=public"
+      APP_SECRET: "troque-por-uma-chave-aleatoria-de-64-hex"
+      ADMIN_EMAIL: "admin@assessor.local"
+      ADMIN_PASSWORD: "troque-esta-senha"
+      TZ: "America/Sao_Paulo"
+      APP_URL: "http://localhost:3000"
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:
