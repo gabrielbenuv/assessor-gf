@@ -52,15 +52,16 @@ model Cartao {
 
 /// Categorias de gasto / entrada
 model Categoria {
-  id          String      @id @default(cuid())
-  nome        String
-  tipo        String      @default("gasto") // gasto | entrada
-  emoji       String?
-  cor         String?
-  ativo       Boolean     @default(true)
-  transacoes  Transacao[]
-  contasFixas ContaFixa[]
-  createdAt   DateTime    @default(now())
+  id                 String      @id @default(cuid())
+  nome               String
+  tipo               String      @default("gasto") // gasto | entrada
+  emoji              String?
+  cor                String?
+  ativo              Boolean     @default(true)
+  orcamentoMensalCents Int? // teto mensal de gasto (opcional)
+  transacoes         Transacao[]
+  contasFixas        ContaFixa[]
+  createdAt          DateTime    @default(now())
 
   @@unique([nome, tipo])
 }
@@ -131,6 +132,7 @@ model ContaFixa {
   valorPrevistoCents Int? // valor esperado (opcional)
   diaVencimento      Int
   ativo              Boolean     @default(true)
+  isAssinatura       Boolean     @default(false) // é uma assinatura recorrente (Netflix, etc.)
   usaPadrao          Boolean     @default(true) // usa o lembrete padrão global?
   lembreteDiasAntes  Int? // se não usa padrão: avisar X dias antes (editável por conta)
   categoriaId        String?
@@ -151,6 +153,18 @@ model Mensagem {
   createdAt DateTime @default(now())
 
   @@index([sessao, createdAt])
+}
+
+/// Perfil financeiro (renda base, reserva, perfil de risco) — por domínio.
+model PerfilFinanceiro {
+  id                 String   @id @default("default")
+  dominio            String   @default("pessoal")
+  rendaBaseCents     Int      @default(0) // renda recorrente mensal de referência
+  reservaMetaCents   Int      @default(0) // meta da reserva de emergência
+  reservaAtualCents  Int      @default(0) // quanto já tem guardado
+  perfilRisco        String   @default("moderado") // conservador | moderado | arrojado
+  percentualInvestir Int      @default(20) // % de cada entrada a guardar
+  updatedAt          DateTime @updatedAt
 }
 
 /// Preferências de notificação (linha única, id = "default")

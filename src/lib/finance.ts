@@ -356,6 +356,109 @@ export async function registrarPagamentoContaFixa(opts: {
   return { ok: true, transacao, conta: alvo.nome, avisos };
 }
 
+// ===== Camada 1: perfil financeiro, tetos, assinaturas, saldo previsto =====
+
+/** Lê (ou cria) o perfil financeiro (renda base, reserva, risco). */
+export async function getPerfil() {
+  return prisma.perfilFinanceiro.upsert({
+    where: { id: "default" },
+    update: {},
+    create: { id: "default" },
+  });
+}
+
+/** Assinaturas ativas (contas fixas marcadas como assinatura) + total mensal. */
+export async function listarAssinaturas() {
+  const subs = await prisma.contaFixa.findMany({
+    where: { ativo: true, isAssinatura: true },
+    orderBy: { valorPrevistoCents: "desc" },
+  });
+  const totalCents = subs.reduce((a, s) => a + (s.valorPrevistoCents || 0), 0);
+  return {
+    itens: subs.map((s) => ({
+      nome: s.nome,
+      valorCents: s.valorPrevistoCents || 0,
+      formatado: formatBRL(s.valorPrevistoCents || 0),
+      diaVencimento: s.diaVencimento,
+    })),
+    totalCents,
+    totalFormatado: formatBRL(totalCents),
+    quantidade: subs.length,
+  };
+}
+
+/** Gastos do mês por categoria comparados ao teto (orçamento). */
+export async function gastosVsTeto(periodo = "mes") {
+  const { start, end, label } = resolvePeriodo(periodo);
+  const cats = await prisma.categoria.findMany({ where: { tipo: "gasto" } });
+  const itens = [];
+  for (const c of cats) {
+    const txs = await prisma.transacao.findMany({
+      where: { tipo: "gasto", categoriaId: c.id, data: { gte: start, lte: end } },
+    });
+    const gastoCents = txs.reduce((a, t) => a + t.valorCents, 0);
+    if (gastoCents === 0 && !c.orcamentoMensalCents) continue;
+    const teto = c.orcamentoMensalCents ?? null;
+    const pct = teto ? Math.round((gastoCents / teto) * 100) : null;
+    itens.push({
+      nome: c.nome,
+      gastoCents,
+      gastoFormatado: formatBRL(gastoCents),
+      tetoCents: teto,
+      tetoFormatado: teto != null ? formatBRL(teto) : null,
+      pct,
+      estourou: teto != null ? gastoCents > teto : false,
+    });
+  }
+  itens.sort((a, b) => b.gastoCents - a.gastoCents);
+  return { periodoLabel: label, itens };
+}
+
+/** Saldo previsto pro fim do mês = saldo atual − contas fixas a pagar. */
+export async function saldoPrevisto() {
+  const saldos = await consultarSaldo();
+  const contas = await listarContasAPagar();
+  const previstoCents = saldos.totalCents - contas.totalAPagar;
+  return {
+    saldoAtualCents: saldos.totalCents,
+    saldoAtualFormatado: saldos.totalFormatado,
+    aPagarCents: contas.totalAPagar,
+    aPagarFormatado: contas.totalAPagarFormatado,
+    previstoCents,
+    previstoFormatado: formatBRL(previstoCents),
+  };
+}
+
+/** Monta um retrato financeiro compacto pra injetar no contexto do agente (CFO). */
+export async function montarSnapshotFinanceiro(): Promise<string> {
+  const [perfil, sp, gv, entradas, gastos, subs] = await Promise.all([
+    getPerfil(),
+    saldoPrevisto(),
+    gastosVsTeto("mes"),
+    consultarGastos({ periodo: "mes", tipo: "entrada" }),
+    consultarGastos({ periodo: "mes", tipo: "gasto" }),
+    listarAssinaturas(),
+  ]);
+  const estouros = gv.itens.filter((i) => i.estourou);
+  const linhas = [
+    `Renda base/mês: ${formatBRL(perfil.rendaBaseCents)} | meta guardar: ${perfil.percentualInvestir}% | risco: ${perfil.perfilRisco}`,
+    `Reserva: ${formatBRL(perfil.reservaAtualCents)} de ${formatBRL(perfil.reservaMetaCents)} (meta)`,
+    `Mês: entrou ${entradas.totalFormatado} | gastou ${gastos.totalFormatado}`,
+    `Saldo atual ${sp.saldoAtualFormatado} | a pagar ${sp.aPagarFormatado} | previsto fim do mês ${sp.previstoFormatado}`,
+    `Assinaturas: ${subs.quantidade} ativas = ${subs.totalFormatado}/mês`,
+  ];
+  if (estouros.length) {
+    linhas.push(
+      `ESTOUROS: ${estouros.map((e) => `${e.nome} (${e.gastoFormatado}/${e.tetoFormatado}, ${e.pct}%)`).join("; ")}`
+    );
+  }
+  const comTeto = gv.itens.filter((i) => i.tetoCents != null && !i.estourou).slice(0, 5);
+  if (comTeto.length) {
+    linhas.push(`Tetos: ${comTeto.map((e) => `${e.nome} ${e.pct}%`).join(", ")}`);
+  }
+  return linhas.join("\n");
+}
+
 /** Resumo para o dashboard. */
 export async function resumoDashboard() {
   const gastosMes = await consultarGastos({ periodo: "mes", tipo: "gasto" });

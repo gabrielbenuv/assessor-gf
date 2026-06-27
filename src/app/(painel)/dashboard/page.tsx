@@ -18,17 +18,18 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
+        <p className="text-eyebrow">Assessor</p>
+        <h1>Dashboard</h1>
         <p className="text-sm text-slate-400">Resumo do mês atual</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         {cards.map((c) => (
           <div key={c.label} className="card">
-            <p className="text-xs text-slate-400">
+            <p className="kpi-label">
               {c.icon} {c.label}
             </p>
-            <p className={`mt-1 text-xl font-semibold ${c.cor}`}>{c.valor}</p>
+            <p className={`kpi-value ${c.cor}`}>{c.valor}</p>
           </div>
         ))}
       </div>
@@ -111,7 +112,7 @@ export default async function DashboardPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-left text-xs text-slate-400">
+              <thead className="t-head">
                 <tr>
                   <th className="pb-2">Data</th>
                   <th className="pb-2">Descrição</th>
@@ -122,7 +123,7 @@ export default async function DashboardPage() {
               </thead>
               <tbody>
                 {ultimas.map((t) => (
-                  <tr key={t.id} className="border-t border-white/10">
+                  <tr key={t.id} className="t-row">
                     <td className="py-2 text-slate-400">{formatBR(t.data, "dd/MM HH:mm")}</td>
                     <td className="py-2">{t.descricao}</td>
                     <td className="py-2">{t.categoria?.nome || "—"}</td>

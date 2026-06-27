@@ -31,10 +31,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-ink-950 p-4">
-      {/* brilho de fundo */}
-      <div className="pointer-events-none absolute -top-40 left-1/2 h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-brand-600/20 blur-[120px]" />
-      <div className="pointer-events-none absolute bottom-0 right-0 h-[28rem] w-[28rem] rounded-full bg-brand-700/10 blur-[120px]" />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden p-4">
+      <div className="brand-bg" aria-hidden />
 
       <form onSubmit={submit} className="card relative z-10 w-full max-w-sm">
         <div className="mb-7 flex flex-col items-center text-center">
