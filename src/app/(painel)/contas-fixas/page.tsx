@@ -103,7 +103,7 @@ export default function ContasFixasPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Contas fixas 📌</h1>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-400">
           Suas contas recorrentes (aluguel, luz, água, assinaturas...). No dia 1º do mês você recebe o relatório de tudo a pagar.
         </p>
       </div>
@@ -164,8 +164,8 @@ export default function ContasFixasPage() {
             ))}
           </select>
         </div>
-        <div className="md:col-span-5 grid gap-3 rounded-lg bg-slate-50 p-3 md:grid-cols-2">
-          <label className="flex items-center gap-2 text-sm text-slate-700">
+        <div className="md:col-span-5 grid gap-3 rounded-lg bg-white/5 p-3 md:grid-cols-2">
+          <label className="flex items-center gap-2 text-sm text-slate-200">
             <input
               type="checkbox"
               checked={form.usaPadrao}
@@ -188,7 +188,7 @@ export default function ContasFixasPage() {
             </div>
           )}
         </div>
-        {erro && <p className="md:col-span-5 text-sm text-red-600">{erro}</p>}
+        {erro && <p className="md:col-span-5 text-sm text-red-400">{erro}</p>}
         <div className="md:col-span-5 flex gap-2">
           <button className="btn-primary">{form.id ? "Salvar alterações" : "Adicionar conta fixa"}</button>
           {form.id && (
@@ -217,22 +217,22 @@ export default function ContasFixasPage() {
             </thead>
             <tbody>
               {lista.map((c) => (
-                <tr key={c.id} className="border-t border-slate-100">
+                <tr key={c.id} className="border-t border-white/10">
                   <td className="py-2 font-medium">{c.nome}</td>
                   <td className="py-2">dia {c.diaVencimento}</td>
-                  <td className="py-2 text-slate-500">
+                  <td className="py-2 text-slate-400">
                     {c.valorPrevistoCents ? formatBRL(c.valorPrevistoCents) : "—"}
                   </td>
-                  <td className="py-2 text-slate-500">{c.categoria?.nome || "—"}</td>
-                  <td className="py-2 text-slate-500">{c.banco?.nome || "—"}</td>
-                  <td className="py-2 text-slate-500">
+                  <td className="py-2 text-slate-400">{c.categoria?.nome || "—"}</td>
+                  <td className="py-2 text-slate-400">{c.banco?.nome || "—"}</td>
+                  <td className="py-2 text-slate-400">
                     {c.usaPadrao ? "padrão" : `${c.lembreteDiasAntes ?? "?"}d antes`}
                   </td>
                   <td className="py-2 text-right">
-                    <button className="text-brand-600 hover:underline" onClick={() => editar(c)}>
+                    <button className="text-brand-400 hover:underline" onClick={() => editar(c)}>
                       editar
                     </button>
-                    <button className="ml-3 text-red-500 hover:underline" onClick={() => remover(c.id)}>
+                    <button className="ml-3 text-red-400 hover:underline" onClick={() => remover(c.id)}>
                       remover
                     </button>
                   </td>

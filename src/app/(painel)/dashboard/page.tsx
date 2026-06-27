@@ -8,24 +8,24 @@ export default async function DashboardPage() {
   const { gastosMes, entradasMes, saldos, faturas, ultimas, contasAPagar } = await resumoDashboard();
 
   const cards = [
-    { label: "Gastos do mês", valor: gastosMes.totalFormatado, cor: "text-red-600", icon: "📉" },
-    { label: "Entradas do mês", valor: entradasMes.totalFormatado, cor: "text-emerald-600", icon: "📈" },
-    { label: "Saldo total", valor: saldos.totalFormatado, cor: "text-slate-800", icon: "🏦" },
-    { label: "Faturas em aberto", valor: faturas.totalFormatado, cor: "text-amber-600", icon: "💳" },
-    { label: "Contas a pagar (mês)", valor: contasAPagar.totalAPagarFormatado, cor: "text-rose-600", icon: "📌" },
+    { label: "Gastos do mês", valor: gastosMes.totalFormatado, cor: "text-red-400", icon: "📉" },
+    { label: "Entradas do mês", valor: entradasMes.totalFormatado, cor: "text-emerald-400", icon: "📈" },
+    { label: "Saldo total", valor: saldos.totalFormatado, cor: "text-offwhite", icon: "🏦" },
+    { label: "Faturas em aberto", valor: faturas.totalFormatado, cor: "text-amber-400", icon: "💳" },
+    { label: "Contas a pagar (mês)", valor: contasAPagar.totalAPagarFormatado, cor: "text-rose-400", icon: "📌" },
   ];
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <p className="text-sm text-slate-500">Resumo do mês atual</p>
+        <p className="text-sm text-slate-400">Resumo do mês atual</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         {cards.map((c) => (
           <div key={c.label} className="card">
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-400">
               {c.icon} {c.label}
             </p>
             <p className={`mt-1 text-xl font-semibold ${c.cor}`}>{c.valor}</p>
@@ -48,7 +48,7 @@ export default async function DashboardPage() {
                       <span>{c.nome}</span>
                       <span className="font-medium">{c.formatado}</span>
                     </div>
-                    <div className="mt-1 h-1.5 w-full rounded-full bg-slate-100">
+                    <div className="mt-1 h-1.5 w-full rounded-full bg-white/10">
                       <div className="h-1.5 rounded-full bg-brand-500" style={{ width: `${pct}%` }} />
                     </div>
                   </li>
@@ -68,10 +68,10 @@ export default async function DashboardPage() {
                 <li key={c.cartao} className="text-sm">
                   <div className="flex justify-between">
                     <span className="font-medium">{c.cartao}</span>
-                    <span className="text-amber-600">{c.totalFormatado}</span>
+                    <span className="text-amber-400">{c.totalFormatado}</span>
                   </div>
                   {c.faturas.map((f) => (
-                    <div key={f.mes} className="ml-1 flex justify-between text-xs text-slate-500">
+                    <div key={f.mes} className="ml-1 flex justify-between text-xs text-slate-400">
                       <span>vence {f.vencimento || f.mes}</span>
                       <span>{f.formatado}</span>
                     </div>
@@ -93,7 +93,7 @@ export default async function DashboardPage() {
                   {i.pago ? "✅" : "⏳"} {i.nome}{" "}
                   <span className="text-slate-400">— vence {i.vencimento}</span>
                 </span>
-                <span className={i.pago ? "text-emerald-600" : "text-rose-600"}>
+                <span className={i.pago ? "text-emerald-400" : "text-rose-400"}>
                   {i.pago ? i.valorPagoFormatado : i.previstoFormatado || "—"}
                 </span>
               </li>
@@ -122,15 +122,15 @@ export default async function DashboardPage() {
               </thead>
               <tbody>
                 {ultimas.map((t) => (
-                  <tr key={t.id} className="border-t border-slate-100">
-                    <td className="py-2 text-slate-500">{formatBR(t.data, "dd/MM HH:mm")}</td>
+                  <tr key={t.id} className="border-t border-white/10">
+                    <td className="py-2 text-slate-400">{formatBR(t.data, "dd/MM HH:mm")}</td>
                     <td className="py-2">{t.descricao}</td>
                     <td className="py-2">{t.categoria?.nome || "—"}</td>
-                    <td className="py-2 text-slate-500">
+                    <td className="py-2 text-slate-400">
                       {t.formaPagamento}
                       {t.cartao ? ` · ${t.cartao.apelido}` : t.banco ? ` · ${t.banco.nome}` : ""}
                     </td>
-                    <td className={`py-2 text-right font-medium ${t.tipo === "entrada" ? "text-emerald-600" : "text-red-600"}`}>
+                    <td className={`py-2 text-right font-medium ${t.tipo === "entrada" ? "text-emerald-400" : "text-red-400"}`}>
                       {t.tipo === "entrada" ? "+" : "-"}
                       {formatBRL(t.valorCents)}
                     </td>

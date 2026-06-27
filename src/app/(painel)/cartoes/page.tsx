@@ -102,7 +102,7 @@ export default function CartoesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Cartões de crédito</h1>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-400">
           Informe o <strong>fechamento</strong> e o <strong>vencimento</strong> da fatura — é o que define em qual mês cada gasto cai.
         </p>
       </div>
@@ -173,8 +173,8 @@ export default function CartoesPage() {
             ))}
           </select>
         </div>
-        <div className="md:col-span-6 grid gap-3 rounded-lg bg-slate-50 p-3 md:grid-cols-3">
-          <label className="flex items-center gap-2 text-sm text-slate-700">
+        <div className="md:col-span-6 grid gap-3 rounded-lg bg-white/5 p-3 md:grid-cols-3">
+          <label className="flex items-center gap-2 text-sm text-slate-200">
             <input
               type="checkbox"
               checked={form.lembreteFaturaAtivo}
@@ -193,7 +193,7 @@ export default function CartoesPage() {
               onChange={(e) => setForm({ ...form, lembreteDiasAntes: e.target.value })}
             />
           </div>
-          <label className="flex items-center gap-2 text-sm text-slate-700">
+          <label className="flex items-center gap-2 text-sm text-slate-200">
             <input
               type="checkbox"
               checked={form.lembreteFechamentoAtivo}
@@ -202,7 +202,7 @@ export default function CartoesPage() {
             📩 Avisar quando a fatura fechar
           </label>
         </div>
-        {erro && <p className="md:col-span-6 text-sm text-red-600">{erro}</p>}
+        {erro && <p className="md:col-span-6 text-sm text-red-400">{erro}</p>}
         <div className="md:col-span-6 flex gap-2">
           <button className="btn-primary">{form.id ? "Salvar alterações" : "Adicionar cartão"}</button>
           {form.id && (
@@ -232,21 +232,21 @@ export default function CartoesPage() {
             </thead>
             <tbody>
               {lista.map((c) => (
-                <tr key={c.id} className="border-t border-slate-100">
+                <tr key={c.id} className="border-t border-white/10">
                   <td className="py-2 font-medium">{c.apelido}</td>
-                  <td className="py-2 text-slate-500">{c.bandeira || "—"}</td>
+                  <td className="py-2 text-slate-400">{c.bandeira || "—"}</td>
                   <td className="py-2">dia {c.diaFechamento}</td>
                   <td className="py-2">dia {c.diaVencimento}</td>
-                  <td className="py-2 text-slate-500">{c.limiteCents ? formatBRL(c.limiteCents) : "—"}</td>
-                  <td className="py-2 text-slate-500">{c.banco?.nome || "—"}</td>
-                  <td className="py-2 text-slate-500">
+                  <td className="py-2 text-slate-400">{c.limiteCents ? formatBRL(c.limiteCents) : "—"}</td>
+                  <td className="py-2 text-slate-400">{c.banco?.nome || "—"}</td>
+                  <td className="py-2 text-slate-400">
                     {c.lembreteFaturaAtivo ? `${c.lembreteDiasAntes}d antes` : "off"}
                   </td>
                   <td className="py-2 text-right">
-                    <button className="text-brand-600 hover:underline" onClick={() => editar(c)}>
+                    <button className="text-brand-400 hover:underline" onClick={() => editar(c)}>
                       editar
                     </button>
-                    <button className="ml-3 text-red-500 hover:underline" onClick={() => remover(c.id)}>
+                    <button className="ml-3 text-red-400 hover:underline" onClick={() => remover(c.id)}>
                       remover
                     </button>
                   </td>

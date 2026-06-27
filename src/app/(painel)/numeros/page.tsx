@@ -57,7 +57,7 @@ export default function NumerosPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Números autorizados 🔒</h1>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-400">
           A IA <strong>só responde</strong> os números desta lista. Qualquer outro contato é ignorado.
           Formato: código do país + DDD + número (ex: <code>5511999998888</code>).
         </p>
@@ -86,7 +86,7 @@ export default function NumerosPage() {
         <div className="flex items-end">
           <button className="btn-primary">Autorizar número</button>
         </div>
-        {erro && <p className="md:col-span-3 text-sm text-red-600">{erro}</p>}
+        {erro && <p className="md:col-span-3 text-sm text-red-400">{erro}</p>}
       </form>
 
       <div className="card">
@@ -106,19 +106,19 @@ export default function NumerosPage() {
             </thead>
             <tbody>
               {lista.map((n) => (
-                <tr key={n.id} className="border-t border-slate-100">
+                <tr key={n.id} className="border-t border-white/10">
                   <td className="py-2 font-mono">{n.numero}</td>
                   <td className="py-2">{n.apelido || "—"}</td>
                   <td className="py-2">
-                    <span className={`badge ${n.ativo ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                    <span className={`badge ${n.ativo ? "bg-emerald-500/15 text-emerald-400" : "bg-white/10 text-slate-400"}`}>
                       {n.ativo ? "ativo" : "inativo"}
                     </span>
                   </td>
                   <td className="py-2 text-right">
-                    <button className="text-brand-600 hover:underline" onClick={() => toggle(n)}>
+                    <button className="text-brand-400 hover:underline" onClick={() => toggle(n)}>
                       {n.ativo ? "desativar" : "ativar"}
                     </button>
-                    <button className="ml-3 text-red-500 hover:underline" onClick={() => remover(n.id)}>
+                    <button className="ml-3 text-red-400 hover:underline" onClick={() => remover(n.id)}>
                       remover
                     </button>
                   </td>

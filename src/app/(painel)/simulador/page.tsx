@@ -63,9 +63,9 @@ export default function SimuladorPage() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Simulador 🤖</h1>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-400">
             Converse com o assessor como se fosse pelo WhatsApp (ele lembra da conversa). Requer a chave da OpenAI em{" "}
-            <a className="text-brand-600 underline" href="/integracoes">
+            <a className="text-brand-400 underline" href="/integracoes">
               Integrações
             </a>
             .
@@ -78,7 +78,7 @@ export default function SimuladorPage() {
 
       <div className="flex flex-wrap gap-2">
         {EXEMPLOS.map((ex) => (
-          <button key={ex} className="badge bg-brand-50 text-brand-700 hover:bg-brand-100" onClick={() => enviar(ex)}>
+          <button key={ex} className="badge bg-brand-500/10 text-brand-400 hover:bg-brand-500/20" onClick={() => enviar(ex)}>
             {ex}
           </button>
         ))}
@@ -95,7 +95,7 @@ export default function SimuladorPage() {
             <div key={i} className={`flex ${m.autor === "voce" ? "justify-end" : "justify-start"}`}>
               <div
                 className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-2 text-sm ${
-                  m.autor === "voce" ? "bg-brand-500 text-white" : "bg-slate-100 text-slate-800"
+                  m.autor === "voce" ? "bg-brand-500 text-white" : "bg-white/10 text-offwhite"
                 }`}
               >
                 {m.texto}
@@ -106,9 +106,9 @@ export default function SimuladorPage() {
         </div>
 
         {imagem && (
-          <div className="mb-2 flex items-center gap-2 text-xs text-slate-500">
+          <div className="mb-2 flex items-center gap-2 text-xs text-slate-400">
             🖼️ recibo anexado
-            <button onClick={() => setImagem(undefined)} className="text-red-500">
+            <button onClick={() => setImagem(undefined)} className="text-red-400">
               remover
             </button>
           </div>

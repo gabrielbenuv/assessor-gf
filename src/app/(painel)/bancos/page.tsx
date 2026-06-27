@@ -73,7 +73,7 @@ export default function BancosPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Bancos & contas</h1>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-400">
           Cadastre suas contas e o <strong>saldo inicial</strong>. O assessor opera em cima disso.
         </p>
       </div>
@@ -110,7 +110,7 @@ export default function BancosPage() {
             placeholder="0,00"
           />
         </div>
-        <label className="md:col-span-4 flex items-center gap-2 text-sm text-slate-700">
+        <label className="md:col-span-4 flex items-center gap-2 text-sm text-slate-200">
           <input
             type="checkbox"
             checked={form.contaSalario}
@@ -118,7 +118,7 @@ export default function BancosPage() {
           />
           💰 Esta é a conta onde cai o meu salário (padrão para entradas)
         </label>
-        <label className="md:col-span-4 flex items-center gap-2 text-sm text-slate-700">
+        <label className="md:col-span-4 flex items-center gap-2 text-sm text-slate-200">
           <input
             type="checkbox"
             checked={form.contaReceber}
@@ -126,7 +126,7 @@ export default function BancosPage() {
           />
           📥 Esta é uma conta a receber (entradas podem cair aqui — se houver mais de uma, ele pergunta qual)
         </label>
-        {erro && <p className="md:col-span-4 text-sm text-red-600">{erro}</p>}
+        {erro && <p className="md:col-span-4 text-sm text-red-400">{erro}</p>}
         <div className="md:col-span-4 flex gap-2">
           <button className="btn-primary" disabled={salvando}>
             {form.id ? "Salvar alterações" : "Adicionar banco"}
@@ -155,24 +155,24 @@ export default function BancosPage() {
             </thead>
             <tbody>
               {lista.map((b) => (
-                <tr key={b.id} className="border-t border-slate-100">
+                <tr key={b.id} className="border-t border-white/10">
                   <td className="py-2 font-medium">
                     {b.nome}
                     {b.contaSalario && (
-                      <span className="badge ml-2 bg-emerald-100 text-emerald-700">💰 salário</span>
+                      <span className="badge ml-2 bg-emerald-500/15 text-emerald-400">💰 salário</span>
                     )}
                     {b.contaReceber && (
-                      <span className="badge ml-2 bg-sky-100 text-sky-700">📥 a receber</span>
+                      <span className="badge ml-2 bg-sky-500/15 text-sky-400">📥 a receber</span>
                     )}
                   </td>
-                  <td className="py-2 text-slate-500">{TIPOS.find((t) => t.v === b.tipo)?.l || b.tipo}</td>
-                  <td className="py-2 text-right text-slate-500">{formatBRL(b.saldoInicialCents)}</td>
+                  <td className="py-2 text-slate-400">{TIPOS.find((t) => t.v === b.tipo)?.l || b.tipo}</td>
+                  <td className="py-2 text-right text-slate-400">{formatBRL(b.saldoInicialCents)}</td>
                   <td className="py-2 text-right font-medium">{formatBRL(b.saldoAtualCents)}</td>
                   <td className="py-2 text-right">
-                    <button className="text-brand-600 hover:underline" onClick={() => editar(b)}>
+                    <button className="text-brand-400 hover:underline" onClick={() => editar(b)}>
                       editar
                     </button>
-                    <button className="ml-3 text-red-500 hover:underline" onClick={() => remover(b.id)}>
+                    <button className="ml-3 text-red-400 hover:underline" onClick={() => remover(b.id)}>
                       remover
                     </button>
                   </td>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { LogoMark } from "@/components/Logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,14 +31,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-50 to-slate-100 p-4">
-      <form onSubmit={submit} className="card w-full max-w-sm">
-        <div className="mb-6 text-center">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-500 text-2xl">
-            💸
-          </div>
-          <h1 className="text-xl font-semibold">Assessor GF</h1>
-          <p className="text-sm text-slate-500">Painel de controle</p>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-ink-950 p-4">
+      {/* brilho de fundo */}
+      <div className="pointer-events-none absolute -top-40 left-1/2 h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-brand-600/20 blur-[120px]" />
+      <div className="pointer-events-none absolute bottom-0 right-0 h-[28rem] w-[28rem] rounded-full bg-brand-700/10 blur-[120px]" />
+
+      <form onSubmit={submit} className="card relative z-10 w-full max-w-sm">
+        <div className="mb-7 flex flex-col items-center text-center">
+          <LogoMark className="mb-3 h-12 w-12" />
+          <h1 className="font-display text-2xl font-semibold tracking-tight">Assessor</h1>
+          <p className="text-sm text-slate-400">Painel de controle</p>
         </div>
 
         <label className="label">E-mail</label>
@@ -46,7 +49,7 @@ export default function LoginPage() {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="admin@assessor.local"
+          placeholder="voce@email.com"
           required
         />
 
@@ -59,7 +62,7 @@ export default function LoginPage() {
           required
         />
 
-        {erro && <p className="mb-3 text-sm text-red-600">{erro}</p>}
+        {erro && <p className="mb-3 text-sm text-red-400">{erro}</p>}
 
         <button className="btn-primary w-full" disabled={carregando}>
           {carregando ? "Entrando..." : "Entrar"}

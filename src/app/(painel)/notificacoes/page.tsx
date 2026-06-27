@@ -58,10 +58,10 @@ export default function NotificacoesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Notificações 🔔</h1>
-        <p className="text-sm text-slate-500">Escolha o que o assessor te envia automaticamente no WhatsApp.</p>
+        <p className="text-sm text-slate-400">Escolha o que o assessor te envia automaticamente no WhatsApp.</p>
       </div>
 
-      {msg && <div className="card bg-brand-50 text-sm text-brand-700">{msg}</div>}
+      {msg && <div className="card bg-brand-500/10 text-sm text-brand-400">{msg}</div>}
 
       <div className="card space-y-4">
         <label className="flex items-center gap-3">

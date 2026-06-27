@@ -100,7 +100,7 @@ export default function TransacoesPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Transações</h1>
-          <p className="text-sm text-slate-500">Lançamentos registrados (manuais e via WhatsApp).</p>
+          <p className="text-sm text-slate-400">Lançamentos registrados (manuais e via WhatsApp).</p>
         </div>
         <div className="flex items-center gap-2">
           <select className="input w-auto" value={periodo} onChange={(e) => setPeriodo(e.target.value)}>
@@ -190,8 +190,8 @@ export default function TransacoesPage() {
 
       <div className="card">
         <div className="mb-3 flex justify-between text-sm">
-          <span className="text-slate-500">{lista.length} lançamento(s)</span>
-          <span className="font-medium text-red-600">Gastos: {formatBRL(total)}</span>
+          <span className="text-slate-400">{lista.length} lançamento(s)</span>
+          <span className="font-medium text-red-400">Gastos: {formatBRL(total)}</span>
         </div>
         {lista.length === 0 ? (
           <p className="text-sm text-slate-400">Nenhuma transação no período.</p>
@@ -210,20 +210,20 @@ export default function TransacoesPage() {
               </thead>
               <tbody>
                 {lista.map((t) => (
-                  <tr key={t.id} className="border-t border-slate-100">
-                    <td className="py-2 text-slate-500">{new Date(t.data).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</td>
+                  <tr key={t.id} className="border-t border-white/10">
+                    <td className="py-2 text-slate-400">{new Date(t.data).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</td>
                     <td className="py-2">{t.descricao}</td>
                     <td className="py-2">{t.categoria?.nome || "—"}</td>
-                    <td className="py-2 text-slate-500">
+                    <td className="py-2 text-slate-400">
                       {t.formaPagamento}
                       {t.cartao ? ` · ${t.cartao.apelido}` : t.banco ? ` · ${t.banco.nome}` : ""}
                     </td>
-                    <td className={`py-2 text-right font-medium ${t.tipo === "entrada" ? "text-emerald-600" : "text-red-600"}`}>
+                    <td className={`py-2 text-right font-medium ${t.tipo === "entrada" ? "text-emerald-400" : "text-red-400"}`}>
                       {t.tipo === "entrada" ? "+" : "-"}
                       {formatBRL(t.valorCents)}
                     </td>
                     <td className="py-2 text-right">
-                      <button className="text-red-500 hover:underline" onClick={() => remover(t.id)}>
+                      <button className="text-red-400 hover:underline" onClick={() => remover(t.id)}>
                         remover
                       </button>
                     </td>

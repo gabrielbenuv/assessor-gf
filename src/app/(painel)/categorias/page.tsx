@@ -53,9 +53,9 @@ export default function CategoriasPage() {
         <h2 className="mb-3 font-semibold">{titulo}</h2>
         <div className="flex flex-wrap gap-2">
           {itens.map((c) => (
-            <span key={c.id} className="badge bg-slate-100 text-slate-700">
+            <span key={c.id} className="badge bg-white/10 text-slate-200">
               {c.emoji} {c.nome}
-              <button className="ml-1 text-red-400 hover:text-red-600" onClick={() => remover(c.id)}>
+              <button className="ml-1 text-red-400 hover:text-red-400" onClick={() => remover(c.id)}>
                 ×
               </button>
             </span>
@@ -70,7 +70,7 @@ export default function CategoriasPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Categorias</h1>
-        <p className="text-sm text-slate-500">A IA usa estas categorias para classificar os lançamentos.</p>
+        <p className="text-sm text-slate-400">A IA usa estas categorias para classificar os lançamentos.</p>
       </div>
 
       <form onSubmit={salvar} className="card grid gap-3 md:grid-cols-4">
@@ -100,7 +100,7 @@ export default function CategoriasPage() {
             placeholder="🐶"
           />
         </div>
-        {erro && <p className="md:col-span-4 text-sm text-red-600">{erro}</p>}
+        {erro && <p className="md:col-span-4 text-sm text-red-400">{erro}</p>}
         <div className="md:col-span-4">
           <button className="btn-primary">Adicionar categoria</button>
         </div>
