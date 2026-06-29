@@ -1,8 +1,15 @@
-// Assessor GF — schema Prisma (FONTE ÚNICA)
+// Assessor — schema Prisma (FONTE ÚNICA)
 // LOCAL: provider = "sqlite" (roda sem Docker).
 // PRODUÇÃO (Docker/EasyPanel): o build roda scripts/gen-prod-schema.mjs, que gera
 //   prisma/schema.prod.prisma com provider="postgresql" automaticamente. NÃO precisa editar à mão.
 // O schema é portável: dinheiro em centavos (Int), sem enums/arrays nativos.
+//
+// PRINCÍPIOS:
+// - Multi-domínio: TODO registro pertence a um domínio ("pessoal" | "chess" | "klivy").
+// - Dinheiro SEMPRE em centavos inteiros.
+// - Lançamento (Parcela/Compromisso) tem VALOR PREVISTO IMUTÁVEL.
+// - Baixa é um EVENTO (uma Transacao com origemTipo/origemId), nunca mutação no lançamento.
+// - Status (a pagar/pago/atrasado) é SEMPRE DERIVADO da existência de baixa + datas.
 
 generator client {
   provider = "prisma-client-js"
@@ -15,70 +22,86 @@ datasource db {
 
 /// Bancos / contas / carteiras
 model Banco {
-  id                String      @id @default(cuid())
-  nome              String      @unique
-  tipo              String      @default("conta_corrente") // conta_corrente | poupanca | carteira
-  saldoInicialCents Int         @default(0)
-  saldoInicialData  DateTime    @default(now())
-  contaSalario      Boolean     @default(false) // conta padrão onde cai o salário/entradas
-  contaReceber      Boolean     @default(false) // conta candidata a receber entradas (recebimentos)
-  ativo             Boolean     @default(true)
+  id                String         @id @default(cuid())
+  nome              String
+  dominio           String         @default("pessoal")
+  tipo              String         @default("conta_corrente") // conta_corrente | poupanca | carteira | pix | dinheiro | investimento
+  saldoInicialCents Int            @default(0)
+  saldoInicialData  DateTime       @default(now())
+  contaSalario      Boolean        @default(false) // recebe_salario: conta padrão das entradas
+  contaReceber      Boolean        @default(false) // eh_conta_a_receber: candidata a receber entradas
+  ativo             Boolean        @default(true)
   cartoes           Cartao[]
   transacoes        Transacao[]
   contasFixas       ContaFixa[]
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  parcelamentos     Parcelamento[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@unique([nome, dominio])
 }
 
 /// Cartões de crédito
 model Cartao {
-  id            String      @id @default(cuid())
-  apelido       String      @unique
+  id            String         @id @default(cuid())
+  apelido       String
+  dominio       String         @default("pessoal")
   bandeira      String?
   diaFechamento Int // dia do mês em que a fatura fecha
   diaVencimento Int // dia do mês em que a fatura vence
   limiteCents   Int?
-  ativo         Boolean     @default(true)
+  ativo         Boolean        @default(true)
   // Lembretes da fatura
   lembreteFaturaAtivo     Boolean @default(true)
   lembreteDiasAntes       Int     @default(5) // avisar X dias antes do vencimento
   lembreteFechamentoAtivo Boolean @default(false) // avisar no dia que a fatura fecha
+  // Conta que PAGA a fatura (conta_pagamento_id)
   bancoId       String?
-  banco         Banco?      @relation(fields: [bancoId], references: [id], onDelete: SetNull)
+  banco         Banco?         @relation(fields: [bancoId], references: [id], onDelete: SetNull)
   transacoes    Transacao[]
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  parcelamentos Parcelamento[]
+  faturas       Fatura[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@unique([apelido, dominio])
 }
 
 /// Categorias de gasto / entrada
 model Categoria {
-  id                 String      @id @default(cuid())
-  nome               String
-  tipo               String      @default("gasto") // gasto | entrada
-  emoji              String?
-  cor                String?
-  ativo              Boolean     @default(true)
+  id                   String          @id @default(cuid())
+  nome                 String
+  dominio              String          @default("pessoal")
+  tipo                 String          @default("gasto") // gasto | entrada
+  emoji                String?
+  cor                  String?
+  ativo                Boolean         @default(true)
   orcamentoMensalCents Int? // teto mensal de gasto (opcional)
-  transacoes         Transacao[]
-  contasFixas        ContaFixa[]
-  createdAt          DateTime    @default(now())
+  transacoes           Transacao[]
+  contasFixas          ContaFixa[]
+  parcelamentos        Parcelamento[]
+  mapas                MapaCategoria[]
+  createdAt            DateTime        @default(now())
 
-  @@unique([nome, tipo])
+  @@unique([nome, tipo, dominio])
 }
 
-/// Lançamentos (gastos e entradas)
+/// Lançamentos (gastos e entradas) — a VERDADE do fluxo de caixa.
 model Transacao {
   id             String     @id @default(cuid())
+  dominio        String     @default("pessoal")
   tipo           String // gasto | entrada
   valorCents     Int
   descricao      String
   data           DateTime // data real do gasto/entrada
   formaPagamento String     @default("dinheiro") // dinheiro | pix | debito | credito
-  faturaMes      String? // "YYYY-MM" — competência da fatura (apenas crédito)
-  pago           Boolean    @default(false) // p/ crédito: já foi pago?
-  pagoEm         DateTime?
-  origem         String     @default("manual") // texto | foto | audio | manual
+  // Origem do lançamento (auditoria/estorno): de onde veio essa baixa
+  origemTipo     String     @default("avulso") // avulso | baixa_parcela | pagamento_fatura | conta_fixa | recebimento
+  origemId       String? // id do lançamento que gerou a baixa
+  origemEntrada  String     @default("manual") // canal: texto | foto | audio | manual
   rawInput       String? // texto original / transcrição / obs do recibo
+  faturaMes      String? // "YYYY-MM" — competência da fatura (apenas crédito; legado/derivação rápida)
+  // Vínculos
   categoriaId    String?
   categoria      Categoria? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
   bancoId        String?
@@ -87,17 +110,98 @@ model Transacao {
   cartao         Cartao?    @relation(fields: [cartaoId], references: [id], onDelete: SetNull)
   contaFixaId    String?
   contaFixa      ContaFixa? @relation(fields: [contaFixaId], references: [id], onDelete: SetNull)
+  parcelaId      String?
+  parcela        Parcela?   @relation(fields: [parcelaId], references: [id], onDelete: SetNull)
+  faturaId       String?
+  fatura         Fatura?    @relation(fields: [faturaId], references: [id], onDelete: SetNull)
   createdAt      DateTime   @default(now())
 
+  @@index([dominio])
   @@index([data])
   @@index([tipo])
   @@index([cartaoId, faturaMes])
   @@index([contaFixaId])
+  @@index([origemTipo, origemId])
+  @@index([parcelaId])
+  @@index([faturaId])
+}
+
+/// Parcelamento — uma compra dividida em N parcelas (gera N registros de Parcela).
+model Parcelamento {
+  id                String    @id @default(cuid())
+  dominio           String    @default("pessoal")
+  descricao         String
+  valorParcelaCents Int
+  numParcelas       Int
+  forma             String // cartao | avulso
+  cartaoId          String?
+  cartao            Cartao?   @relation(fields: [cartaoId], references: [id], onDelete: SetNull)
+  bancoId           String? // se forma=avulso, conta sugerida de pagamento
+  banco             Banco?    @relation(fields: [bancoId], references: [id], onDelete: SetNull)
+  categoriaId       String?
+  categoria         Categoria? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  dataPrimeira      DateTime // vencimento da 1ª parcela
+  ativo             Boolean   @default(true)
+  parcelas          Parcela[]
+  createdAt         DateTime  @default(now())
+
+  @@index([dominio])
+}
+
+/// Parcela — uma ocorrência de um Parcelamento. Valor IMUTÁVEL; status DERIVADO.
+model Parcela {
+  id                 String       @id @default(cuid())
+  parcelamentoId     String
+  parcelamento       Parcelamento @relation(fields: [parcelamentoId], references: [id], onDelete: Cascade)
+  dominio            String       @default("pessoal")
+  numero             Int // ex: 6
+  total              Int // ex: 30
+  valorPrevistoCents Int // IMUTÁVEL
+  vencimento         DateTime
+  mesCompetencia     String // "YYYY-MM"
+  faturaId           String? // preenchido quando o parcelamento é via cartão
+  fatura             Fatura?      @relation(fields: [faturaId], references: [id], onDelete: SetNull)
+  transacoes         Transacao[] // baixas (forma=avulso)
+  createdAt          DateTime     @default(now())
+
+  @@index([parcelamentoId])
+  @@index([mesCompetencia])
+  @@index([faturaId])
+}
+
+/// Fatura — ciclo de um cartão. Total e status DERIVADOS. Pagar quita o ciclo todo.
+model Fatura {
+  id             String      @id @default(cuid())
+  cartaoId       String
+  cartao         Cartao      @relation(fields: [cartaoId], references: [id], onDelete: Cascade)
+  dominio        String      @default("pessoal")
+  mesReferencia  String // "YYYY-MM" (competência = mês do vencimento)
+  dataVencimento DateTime
+  parcelas       Parcela[]
+  transacoes     Transacao[] // compras do ciclo + a transação de pagamento (origemTipo=pagamento_fatura)
+  createdAt      DateTime    @default(now())
+
+  @@unique([cartaoId, mesReferencia])
+  @@index([dominio])
+}
+
+/// Mapa de aprendizado: termo (palavra-chave) → categoria, por domínio.
+model MapaCategoria {
+  id          String    @id @default(cuid())
+  termo       String // normalizado (minúsculo, sem acento) ex: "colchao"
+  dominio     String    @default("pessoal")
+  categoriaId String
+  categoria   Categoria @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+  hits        Int       @default(1)
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([termo, dominio])
 }
 
 /// Eventos criados no Google Calendar (log)
 model EventoAgenda {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
+  dominio       String    @default("pessoal")
   titulo        String
   inicio        DateTime
   fim           DateTime?
@@ -105,7 +209,7 @@ model EventoAgenda {
   descricao     String?
   googleEventId String?
   googleLink    String?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
 }
 
 /// Números de WhatsApp autorizados a falar com a IA (whitelist)
@@ -125,14 +229,17 @@ model Config {
   updatedAt DateTime @updatedAt
 }
 
-/// Contas fixas / recorrentes (luz, água, aluguel, assinaturas...)
+/// Compromissos recorrentes (conta fixa, assinatura ou recebimento recorrente).
 model ContaFixa {
   id                 String      @id @default(cuid())
-  nome               String      @unique
-  valorPrevistoCents Int? // valor esperado (opcional)
+  nome               String
+  dominio            String      @default("pessoal")
+  tipo               String      @default("conta_fixa") // conta_fixa | assinatura | recebimento
+  recorrencia        String      @default("mensal") // mensal | trimestral | anual | semanal
+  valorPrevistoCents Int? // valor esperado (opcional/variável)
   diaVencimento      Int
   ativo              Boolean     @default(true)
-  isAssinatura       Boolean     @default(false) // é uma assinatura recorrente (Netflix, etc.)
+  isAssinatura       Boolean     @default(false) // (legado) sincronizado com tipo=assinatura
   usaPadrao          Boolean     @default(true) // usa o lembrete padrão global?
   lembreteDiasAntes  Int? // se não usa padrão: avisar X dias antes (editável por conta)
   categoriaId        String?
@@ -141,6 +248,9 @@ model ContaFixa {
   banco              Banco?      @relation(fields: [bancoId], references: [id], onDelete: SetNull)
   transacoes         Transacao[] // pagamentos lançados
   createdAt          DateTime    @default(now())
+
+  @@unique([nome, dominio])
+  @@index([dominio])
 }
 
 /// Histórico de conversa por sessão (número de WhatsApp ou "simulador")
@@ -155,10 +265,10 @@ model Mensagem {
   @@index([sessao, createdAt])
 }
 
-/// Perfil financeiro (renda base, reserva, perfil de risco) — por domínio.
+/// Perfil financeiro (renda base, reserva, perfil de risco) — UMA linha por domínio.
 model PerfilFinanceiro {
-  id                 String   @id @default("default")
-  dominio            String   @default("pessoal")
+  id                 String   @id @default(cuid())
+  dominio            String   @unique @default("pessoal")
   rendaBaseCents     Int      @default(0) // renda recorrente mensal de referência
   reservaMetaCents   Int      @default(0) // meta da reserva de emergência
   reservaAtualCents  Int      @default(0) // quanto já tem guardado

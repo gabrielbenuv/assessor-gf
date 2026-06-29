@@ -11,6 +11,13 @@ import {
   getContaSalario,
   listarContasAPagar,
   registrarPagamentoContaFixa,
+  criarParcelamento,
+  darBaixaParcela,
+  listarParcelamentos,
+  pagarFatura,
+  aprenderCategoria,
+  montarSnapshotFinanceiro,
+  normDominio,
 } from "./finance";
 import { criarEventoCalendar, googleConectado } from "./google";
 import { carregarHistorico, salvarTurno } from "./memory";
@@ -30,7 +37,7 @@ const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
     function: {
       name: "registrar_transacao",
       description:
-        "Registra um gasto ou uma entrada (receita). Use sempre que o usuário relatar que gastou/recebeu algo, ou ao ler um recibo.",
+        "Registra um gasto ou uma entrada (receita) avulsa. Use sempre que o usuário relatar que gastou/recebeu algo, ou ao ler um recibo. NÃO use para compras parceladas (use registrar_parcelamento).",
       parameters: {
         type: "object",
         properties: {
@@ -51,6 +58,69 @@ const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
           cartao: { type: "string", description: "Apelido do cartão (quando forma_pagamento=credito). Opcional." },
         },
         required: ["tipo", "valor", "descricao"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "registrar_parcelamento",
+      description:
+        "Registra uma compra PARCELADA (gera todas as parcelas com seus vencimentos). Ex: 'parcelei o colchão em 30x de 500 no pix'. SEMPRE confirme com um resumo antes de chamar (ex: 'Colchão, 30x de R$500 = R$15.000, categoria Casa. Confirma?').",
+      parameters: {
+        type: "object",
+        properties: {
+          descricao: { type: "string", description: "O que foi comprado (ex: 'colchão')" },
+          valor_parcela: { type: "number", description: "Valor de CADA parcela em reais (ex: 500)" },
+          num_parcelas: { type: "integer", description: "Número de parcelas (ex: 30)" },
+          forma: {
+            type: "string",
+            enum: ["cartao", "avulso"],
+            description:
+              "cartao = cai na fatura do cartão; avulso = carnê/boleto/pix pago no mês de cada parcela.",
+          },
+          cartao: { type: "string", description: "Apelido do cartão (se forma=cartao)." },
+          banco: { type: "string", description: "Conta sugerida de pagamento (se forma=avulso). Opcional." },
+          categoria: { type: "string", description: "Categoria sugerida. Opcional." },
+          data_primeira: { type: "string", description: "Vencimento da 1ª parcela em ISO (YYYY-MM-DD). Opcional (usa hoje)." },
+        },
+        required: ["descricao", "valor_parcela", "num_parcelas", "forma"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "dar_baixa_parcela",
+      description:
+        "Dá baixa (pagamento) na PRÓXIMA parcela em aberto de um parcelamento AVULSO. Ex: 'paguei a parcela do colchão'. SEMPRE capture de qual conta saiu o dinheiro — se o usuário não disser e houver mais de uma conta, PERGUNTE antes.",
+      parameters: {
+        type: "object",
+        properties: {
+          descricao: { type: "string", description: "Descrição do parcelamento (ex: 'colchão')." },
+          banco: { type: "string", description: "Conta de onde saiu o dinheiro." },
+          forma_pagamento: { type: "string", enum: ["dinheiro", "pix", "debito"] },
+          valor: { type: "number", description: "Valor pago em reais. Opcional (padrão: valor previsto da parcela)." },
+        },
+        required: ["descricao"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "pagar_fatura",
+      description:
+        "Paga a fatura de um cartão de crédito (quita o CICLO inteiro de uma vez). Ex: 'paguei a fatura do nubank'.",
+      parameters: {
+        type: "object",
+        properties: {
+          cartao: { type: "string", description: "Apelido do cartão." },
+          valor: { type: "number", description: "Valor pago em reais. Opcional (padrão: total da fatura)." },
+          banco: { type: "string", description: "Conta de onde saiu o dinheiro. Opcional." },
+          mes: { type: "string", description: "Mês da fatura 'YYYY-MM'. Opcional (padrão: a mais antiga em aberto)." },
+        },
+        required: [],
       },
     },
   },
@@ -100,6 +170,14 @@ const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "listar_parcelamentos",
+      description: "Lista os parcelamentos em andamento, com progresso (parcela X de N) e quanto falta.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "listar_contas_a_pagar",
       description:
         "Lista as contas fixas/recorrentes do mês: quais já foram pagas, quais faltam, valores e datas de vencimento.",
@@ -134,6 +212,15 @@ const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "exportar_planilha",
+      description:
+        "Gera uma planilha (.xlsx) com o resumo financeiro completo (transações, parcelas, faturas, contas fixas, previsão) e ENVIA como documento no WhatsApp. Use quando o usuário pedir 'exporta a planilha', 'me manda em excel', etc.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "criar_evento_agenda",
       description: "Cria um evento no Google Calendar do usuário.",
       parameters: {
@@ -162,7 +249,11 @@ function parseDataHora(s?: string): Date | undefined {
   }
 }
 
+// Sinaliza ao webhook/simulador que esta resposta deve disparar o envio da planilha.
+export const PLANILHA_FLAG = "[[EXPORTAR_PLANILHA]]";
+
 async function executarTool(name: string, args: any, origem: string): Promise<string> {
+  const dominio = normDominio(args?.dominio);
   switch (name) {
     case "registrar_transacao": {
       const { transacao, avisos } = await registrarTransacao({
@@ -174,9 +265,13 @@ async function executarTool(name: string, args: any, origem: string): Promise<st
         formaPagamento: args.forma_pagamento,
         bancoNome: args.banco,
         cartaoApelido: args.cartao,
-        origem: origem as any,
-        rawInput: undefined,
+        origemEntrada: origem as any,
+        dominio,
       });
+      // Aprende a categoria pra próxima vez acertar sozinho.
+      if (transacao.categoriaId && args.descricao) {
+        await aprenderCategoria(args.descricao, transacao.categoriaId, dominio);
+      }
       return JSON.stringify({
         ok: true,
         id: transacao.id,
@@ -187,6 +282,44 @@ async function executarTool(name: string, args: any, origem: string): Promise<st
         avisos,
       });
     }
+    case "registrar_parcelamento": {
+      const r = await criarParcelamento({
+        descricao: args.descricao,
+        valorParcelaCents: toCents(args.valor_parcela),
+        numParcelas: Number(args.num_parcelas),
+        forma: args.forma === "cartao" ? "cartao" : "avulso",
+        cartaoApelido: args.cartao,
+        bancoNome: args.banco,
+        categoriaNome: args.categoria,
+        dataPrimeira: parseDataHora(args.data_primeira),
+        dominio,
+      });
+      return JSON.stringify(r);
+    }
+    case "dar_baixa_parcela": {
+      const r = await darBaixaParcela({
+        descricao: args.descricao,
+        bancoNome: args.banco,
+        formaPagamento: args.forma_pagamento,
+        valorCents: args.valor != null ? toCents(args.valor) : undefined,
+        origemEntrada: origem,
+        dominio,
+      });
+      return JSON.stringify(r);
+    }
+    case "pagar_fatura": {
+      const r = await pagarFatura({
+        cartaoApelido: args.cartao,
+        valorCents: args.valor != null ? toCents(args.valor) : undefined,
+        bancoNome: args.banco,
+        mes: args.mes,
+        origemEntrada: origem,
+        dominio,
+      });
+      return JSON.stringify(r);
+    }
+    case "listar_parcelamentos":
+      return JSON.stringify(await listarParcelamentos(dominio));
     case "consultar_gastos":
       return JSON.stringify(
         await consultarGastos({
@@ -195,14 +328,15 @@ async function executarTool(name: string, args: any, origem: string): Promise<st
           categoriaNome: args.categoria,
           bancoNome: args.banco,
           cartaoApelido: args.cartao,
+          dominio,
         })
       );
     case "consultar_saldo":
-      return JSON.stringify(await consultarSaldo(args.banco));
+      return JSON.stringify(await consultarSaldo(args.banco, dominio));
     case "fatura_em_aberto":
-      return JSON.stringify(await faturaEmAberto(args.cartao));
+      return JSON.stringify(await faturaEmAberto(args.cartao, dominio));
     case "listar_contas_a_pagar":
-      return JSON.stringify(await listarContasAPagar(args.mes));
+      return JSON.stringify(await listarContasAPagar(args.mes, dominio));
     case "registrar_pagamento_conta_fixa":
       return JSON.stringify(
         await registrarPagamentoContaFixa({
@@ -212,9 +346,13 @@ async function executarTool(name: string, args: any, origem: string): Promise<st
           bancoNome: args.banco,
           cartaoApelido: args.cartao,
           data: parseDataHora(args.data),
-          origem,
+          origemEntrada: origem,
+          dominio,
         })
       );
+    case "exportar_planilha":
+      // O envio real do arquivo é feito pelo webhook/simulador ao ver a flag na resposta.
+      return JSON.stringify({ ok: true, instrucao: `Responda confirmando o envio e inclua o marcador ${PLANILHA_FLAG} no fim da mensagem.` });
     case "criar_evento_agenda": {
       if (!(await googleConectado())) {
         return JSON.stringify({
@@ -258,37 +396,50 @@ async function executarTool(name: string, args: any, origem: string): Promise<st
 }
 
 async function montarSystemPrompt(): Promise<string> {
-  const [bancos, cartoes, categorias, contasFixas, contaSalario, contasReceber] = await Promise.all([
-    prisma.banco.findMany({ where: { ativo: true }, select: { nome: true } }),
-    prisma.cartao.findMany({ where: { ativo: true }, select: { apelido: true } }),
-    prisma.categoria.findMany({ where: { ativo: true }, select: { nome: true, tipo: true } }),
-    prisma.contaFixa.findMany({ where: { ativo: true }, select: { nome: true, diaVencimento: true } }),
-    getContaSalario(),
-    prisma.banco.findMany({ where: { ativo: true, OR: [{ contaSalario: true }, { contaReceber: true }] }, select: { nome: true } }),
+  const [bancos, cartoes, categorias, contasFixas, contaSalario, contasReceber, snapshot] = await Promise.all([
+    prisma.banco.findMany({ where: { ativo: true, dominio: "pessoal" }, select: { nome: true } }),
+    prisma.cartao.findMany({ where: { ativo: true, dominio: "pessoal" }, select: { apelido: true } }),
+    prisma.categoria.findMany({ where: { ativo: true, dominio: "pessoal" }, select: { nome: true, tipo: true } }),
+    prisma.contaFixa.findMany({ where: { ativo: true, dominio: "pessoal" }, select: { nome: true, diaVencimento: true } }),
+    getContaSalario("pessoal"),
+    prisma.banco.findMany({
+      where: { ativo: true, dominio: "pessoal", OR: [{ contaSalario: true }, { contaReceber: true }] },
+      select: { nome: true },
+    }),
+    montarSnapshotFinanceiro("pessoal").catch(() => ""),
   ]);
 
   return [
-    "Você é o Assessor Financeiro pessoal do usuário, falando pelo WhatsApp em português do Brasil.",
-    `Agora é ${contextoDataHora()} (fuso ${TZ}). Moeda: Real (R$).`,
+    "Você é o Assessor — o estrategista financeiro pessoal do usuário, falando pelo WhatsApp em português do Brasil.",
+    "Personalidade: pensa como um CFO de elite (nível Harvard) — direto, prático e honesto sobre dinheiro, mas gentil e sem jargão. Quando vir algo importante (estouro de teto, saldo baixo previsto, assinatura cara), comente em 1 linha. Não enrole.",
+    `Agora é ${contextoDataHora()} (fuso ${TZ}). Moeda: Real (R$). Domínio padrão: pessoal.`,
+    "",
+    "RETRATO FINANCEIRO ATUAL (use para dar contexto às respostas, sem despejar tudo):",
+    snapshot || "(sem dados ainda)",
     "",
     "Suas funções:",
-    "- Registrar gastos e entradas (texto, áudio transcrito ou foto de recibo).",
-    "- Responder consultas: quanto gastou, saldo, fatura em aberto, contas a pagar.",
-    "- Registrar pagamento de contas fixas e agendar eventos no Google Calendar.",
+    "- Registrar gastos/entradas avulsos, COMPRAS PARCELADAS, e dar baixa em parcelas.",
+    "- Pagar faturas de cartão (quita o ciclo inteiro).",
+    "- Responder consultas: quanto gastou, saldo, fatura em aberto, parcelamentos, contas a pagar.",
+    "- Registrar pagamento de contas fixas, exportar planilha e agendar eventos no Google Calendar.",
     "",
     "Regras de REGISTRO (importante):",
-    "- Para um GASTO: você PRECISA saber a forma de pagamento (dinheiro, pix, débito ou crédito).",
-    "  • Se o usuário NÃO informar a forma de pagamento, PERGUNTE antes de registrar. Não invente nem assuma.",
-    "  • Se for crédito e não disser qual cartão, pergunte qual cartão.",
-    "  • Se for débito/pix e houver mais de um banco, pergunte de qual conta saiu.",
-    "- Para uma ENTRADA (ex: salário/recebimento): se não disser a conta — se houver só UMA conta de recebimento, use ela; se houver MAIS DE UMA, PERGUNTE em qual conta caiu antes de registrar.",
-    "- Quando JÁ tiver todas as informações, registre direto (sem pedir 'confirma?').",
-    "- Se o usuário relatar pagamento de uma conta fixa conhecida (luz, água, aluguel...), use registrar_pagamento_conta_fixa.",
-    "- Categorize com bom senso usando as categorias existentes.",
+    "- GASTO avulso: você PRECISA saber a forma de pagamento (dinheiro, pix, débito ou crédito). Se não informar, PERGUNTE. Não invente.",
+    "  • Crédito sem cartão → pergunte qual cartão. Débito/pix com mais de um banco → pergunte de qual conta saiu.",
+    "- ENTRADA (salário/recebimento): sem conta informada — se houver só UMA conta de recebimento, use ela; se houver MAIS DE UMA, PERGUNTE.",
+    "- PARCELAMENTO: ao detectar 'parcelei/em Nx de R$Y', use registrar_parcelamento. SEMPRE confirme com um resumo curto antes (total, nº de parcelas, categoria). 'avulso' = pix/boleto/carnê; 'cartao' = vai pra fatura.",
+    "- BAIXA de parcela ('paguei a parcela do X'): use dar_baixa_parcela e SEMPRE capture de qual conta saiu (pergunte se preciso).",
+    "- FATURA ('paguei a fatura do cartão'): use pagar_fatura — isso quita o ciclo todo, não uma parcela isolada.",
+    "- Quando JÁ tiver todas as informações (fora parcelamento), registre direto, sem pedir 'confirma?'.",
+    "",
+    "CATEGORIZAÇÃO:",
+    "- Categorize sozinho usando as categorias existentes. Só PERGUNTE a categoria se estiver realmente em dúvida.",
     "- Em recibos (imagem), extraia valor total, estabelecimento e data.",
-    "- Para eventos, converta 'amanhã 19h' etc. para ISO 8601 com fuso -03:00 usando a data/hora atual.",
+    "",
+    "ESTILO:",
     "- Seja breve, claro e simpático (estilo WhatsApp). Poucos emojis. Confirme o que registrou (valor + categoria + forma).",
-    "- Responda SEMPRE em português. Considere o histórico da conversa para entender respostas curtas (ex: 'crédito nubank').",
+    "- Para eventos, converta 'amanhã 19h' para ISO 8601 com fuso -03:00 usando a data/hora atual.",
+    "- Responda SEMPRE em português. Use o histórico pra entender respostas curtas (ex: 'crédito nubank').",
     "",
     `Conta que recebe o salário: ${contaSalario?.nome || "(não definida)"}.`,
     `Contas de recebimento (entradas): ${contasReceber.map((b) => b.nome).join(", ") || "(nenhuma)"}.`,

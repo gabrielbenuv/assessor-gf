@@ -22,9 +22,7 @@ export default function NotificacoesPage() {
     const r = await fetch("/api/notificacoes");
     if (r.ok) setPrefs(await r.json());
   }
-  useEffect(() => {
-    carregar();
-  }, []);
+  useEffect(() => { carregar(); }, []);
 
   async function salvar() {
     if (!prefs) return;
@@ -33,7 +31,7 @@ export default function NotificacoesPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(prefs),
     });
-    setMsg(r.ok ? "✅ Preferências salvas." : "Erro ao salvar.");
+    setMsg(r.ok ? "Preferências salvas." : "Erro ao salvar.");
   }
 
   async function testar(enviar: boolean) {
@@ -42,130 +40,79 @@ export default function NotificacoesPage() {
     const data = await r.json();
     setPreview(data.texto || "");
     if (enviar) {
-      setMsg(
-        data.evolution
-          ? `✅ Enviado para ${data.enviadoPara} número(s).`
-          : "⚠️ Evolution não configurada — texto gerado, mas não enviado no WhatsApp."
-      );
+      setMsg(data.evolution ? `Enviado para ${data.enviadoPara} número(s).` : "Evolution não configurada — texto gerado, mas não enviado.");
     } else {
       setMsg("Pré-visualização gerada abaixo.");
     }
   }
 
-  if (!prefs) return <p className="text-sm text-slate-400">Carregando…</p>;
+  if (!prefs) return <p className="text-sm t-muted">Carregando…</p>;
+
+  const Linha = ({ checked, onChange, children }: { checked: boolean; onChange: (v: boolean) => void; children: React.ReactNode }) => (
+    <label className="flex items-center gap-3">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <span className="text-sm">{children}</span>
+    </label>
+  );
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Notificações 🔔</h1>
-        <p className="text-sm text-slate-400">Escolha o que o assessor te envia automaticamente no WhatsApp.</p>
+        <p className="eyebrow">Configuração</p>
+        <h1>Notificações</h1>
+        <p className="text-sm t-muted">Escolha o que o assessor te envia automaticamente no WhatsApp.</p>
       </div>
 
-      {msg && <div className="card bg-brand-500/10 text-sm text-brand-400">{msg}</div>}
+      {msg && <div className="card-flat text-sm t-accent">{msg}</div>}
 
       <div className="card space-y-4">
-        <label className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            checked={prefs.relatorioMensalAtivo}
-            onChange={(e) => setPrefs({ ...prefs, relatorioMensalAtivo: e.target.checked })}
-          />
-          <span className="text-sm">
-            <strong>Relatório mensal de contas a pagar</strong> — recebo a lista de contas fixas do mês com datas e valores.
-          </span>
-        </label>
+        <Linha checked={prefs.relatorioMensalAtivo} onChange={(v) => setPrefs({ ...prefs, relatorioMensalAtivo: v })}>
+          <strong>Relatório mensal de contas a pagar</strong> — a lista de contas fixas do mês com datas e valores.
+        </Linha>
         <div className="ml-7 flex flex-wrap gap-4">
           <div>
             <label className="label">Dia do mês</label>
-            <input
-              className="input w-24"
-              type="number"
-              min={1}
-              max={28}
-              value={prefs.diaRelatorio}
-              onChange={(e) => setPrefs({ ...prefs, diaRelatorio: Number(e.target.value) })}
-            />
+            <input className="input tnum w-24" type="number" min={1} max={28} value={prefs.diaRelatorio} onChange={(e) => setPrefs({ ...prefs, diaRelatorio: Number(e.target.value) })} />
           </div>
           <div>
             <label className="label">Horário</label>
-            <input
-              className="input w-32"
-              type="time"
-              value={prefs.horaEnvio}
-              onChange={(e) => setPrefs({ ...prefs, horaEnvio: e.target.value })}
-            />
+            <input className="input w-32" type="time" value={prefs.horaEnvio} onChange={(e) => setPrefs({ ...prefs, horaEnvio: e.target.value })} />
           </div>
         </div>
       </div>
 
       <div className="card space-y-4">
-        <label className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            checked={prefs.lembreteVencimentoAtivo}
-            onChange={(e) => setPrefs({ ...prefs, lembreteVencimentoAtivo: e.target.checked })}
-          />
-          <span className="text-sm">
-            <strong>Lembrete de contas fixas</strong> — aviso quando uma conta fixa está perto de vencer (se ainda não paga).
-          </span>
-        </label>
+        <Linha checked={prefs.lembreteVencimentoAtivo} onChange={(v) => setPrefs({ ...prefs, lembreteVencimentoAtivo: v })}>
+          <strong>Lembrete de contas fixas e parcelas</strong> — aviso quando algo está perto de vencer (e alerta de estouro de teto).
+        </Linha>
         <div className="ml-7">
           <label className="label">Padrão: avisar quantos dias antes (0 = no dia)</label>
-          <input
-            className="input w-24"
-            type="number"
-            min={0}
-            max={15}
-            value={prefs.contasFixasDiasAntes}
-            onChange={(e) => setPrefs({ ...prefs, contasFixasDiasAntes: Number(e.target.value) })}
-          />
-          <p className="mt-1 text-xs text-slate-400">
-            Vale para as contas fixas marcadas como “usar padrão”. As demais usam o valor próprio.
-          </p>
+          <input className="input tnum w-24" type="number" min={0} max={15} value={prefs.contasFixasDiasAntes} onChange={(e) => setPrefs({ ...prefs, contasFixasDiasAntes: Number(e.target.value) })} />
+          <p className="mt-1 text-xs t-faint">Vale para os itens marcados como “usar padrão”. Os demais usam o valor próprio.</p>
         </div>
       </div>
 
-      <div className="card space-y-4">
-        <label className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            checked={prefs.lembreteCartaoAtivo}
-            onChange={(e) => setPrefs({ ...prefs, lembreteCartaoAtivo: e.target.checked })}
-          />
-          <span className="text-sm">
-            <strong>Lembrete de fatura de cartão</strong> — aviso da fatura conforme os dias configurados em cada cartão.
-          </span>
-        </label>
+      <div className="card">
+        <Linha checked={prefs.lembreteCartaoAtivo} onChange={(v) => setPrefs({ ...prefs, lembreteCartaoAtivo: v })}>
+          <strong>Lembrete de fatura de cartão</strong> — conforme os dias configurados em cada cartão.
+        </Linha>
       </div>
 
-      <div className="card space-y-4">
-        <label className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            checked={prefs.resumoSemanalAtivo}
-            onChange={(e) => setPrefs({ ...prefs, resumoSemanalAtivo: e.target.checked })}
-          />
-          <span className="text-sm">
-            <strong>Resumo semanal</strong> — toda segunda-feira, o que vence na semana.
-          </span>
-        </label>
+      <div className="card">
+        <Linha checked={prefs.resumoSemanalAtivo} onChange={(v) => setPrefs({ ...prefs, resumoSemanalAtivo: v })}>
+          <strong>Resumo semanal</strong> — toda segunda-feira, o que vence na semana.
+        </Linha>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <button className="btn-primary" onClick={salvar}>
-          Salvar preferências
-        </button>
-        <button className="btn-ghost" onClick={() => testar(false)}>
-          Pré-visualizar relatório
-        </button>
-        <button className="btn-ghost" onClick={() => testar(true)}>
-          Enviar relatório agora
-        </button>
+        <button className="btn-primary" onClick={salvar}>Salvar preferências</button>
+        <button className="btn-ghost" onClick={() => testar(false)}>Pré-visualizar relatório</button>
+        <button className="btn-ghost" onClick={() => testar(true)}>Enviar relatório agora</button>
       </div>
 
       {preview && (
         <div className="card">
-          <p className="mb-2 text-xs text-slate-400">Pré-visualização do relatório:</p>
+          <p className="mb-2 text-xs t-faint">Pré-visualização do relatório:</p>
           <pre className="whitespace-pre-wrap text-sm">{preview}</pre>
         </div>
       )}

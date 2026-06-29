@@ -31,14 +31,12 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden p-4">
-      <div className="brand-bg" aria-hidden />
-
-      <form onSubmit={submit} className="card relative z-10 w-full max-w-sm">
+    <div className="flex min-h-screen items-center justify-center bg-bgc p-4">
+      <form onSubmit={submit} className="card w-full max-w-sm">
         <div className="mb-7 flex flex-col items-center text-center">
-          <LogoMark className="mb-3 h-12 w-12" />
-          <h1 className="font-display text-2xl font-semibold tracking-tight">Assessor</h1>
-          <p className="text-sm text-slate-400">Painel de controle</p>
+          <LogoMark className="mb-3 h-12 w-12 text-accent" />
+          <h1 className="text-2xl font-bold tracking-tight">Assessor</h1>
+          <p className="text-sm t-muted">Painel de controle</p>
         </div>
 
         <label className="label">E-mail</label>
@@ -48,6 +46,7 @@ export default function LoginPage() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="voce@email.com"
+          autoFocus
           required
         />
 
@@ -60,7 +59,7 @@ export default function LoginPage() {
           required
         />
 
-        {erro && <p className="mb-3 text-sm text-red-400">{erro}</p>}
+        {erro && <p className="mb-3 text-sm val-neg">{erro}</p>}
 
         <button className="btn-primary w-full" disabled={carregando}>
           {carregando ? "Entrando..." : "Entrar"}

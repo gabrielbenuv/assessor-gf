@@ -29,4 +29,6 @@ COPY --from=build /app/next.config.mjs ./next.config.mjs
 EXPOSE 3000
 
 # Cria/atualiza as tabelas no Postgres, popula categorias padrão (idempotente) e sobe o app.
-CMD ["sh", "-c", "npx prisma db push --schema=prisma/schema.prod.prisma --skip-generate && (npx prisma db seed || true) && npm run start"]
+# --accept-data-loss: necessário pra aplicar a evolução do schema (colunas antigas removidas,
+# índices únicos por domínio). Não apaga dados das tabelas mantidas — só ajusta a estrutura.
+CMD ["sh", "-c", "npx prisma db push --schema=prisma/schema.prod.prisma --skip-generate --accept-data-loss && (npx prisma db seed || true) && npm run start"]

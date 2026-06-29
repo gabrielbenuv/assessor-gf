@@ -3,171 +3,273 @@
 @tailwind utilities;
 
 /* =========================================================================
-   ASSESSOR — DESIGN SYSTEM
-   Identidade: dark (petróleo/preto) · off-white #FFFCE6 · azul #1B63F2/#0540F2
-   Tipografia: Wix Madefor Display (display) + Inter (texto)
+   ASSESSOR — DESIGN SYSTEM (claro + escuro · híbrido marca × fintech)
+   Accent da marca: #1B63F2 · Off-white #FFFCE6 (texto no escuro)
+   Tipografia: Plus Jakarta Sans (display) + Inter (texto) · números tabulares
    ========================================================================= */
 
-/* ---------- 1. TOKENS ---------- */
-:root {
+/* ---------- TOKENS ---------- */
+:root,
+[data-theme="dark"] {
   color-scheme: dark;
-
-  /* Cores base */
-  --bg: #07090c;
-  --surface: #11141c;
-  --surface-2: #161a24;
-  --surface-3: #1b1f2b; /* petroleum */
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.14);
-
-  --text: #fffce6; /* off white */
-  --text-muted: #98a2b3;
-  --text-faint: #5b6472;
-
-  /* Marca */
-  --brand: #1b63f2; /* high blue (ação) */
-  --brand-strong: #0540f2; /* blue microsonic (realce) */
-  --brand-deep: #0f41a6; /* royal blue */
-  --brand-soft: rgba(27, 99, 242, 0.14);
-
-  /* Raio e sombra */
-  --radius-sm: 0.625rem;
-  --radius: 1rem;
-  --radius-lg: 1.25rem;
-  --shadow: 0 12px 40px -12px rgba(0, 0, 0, 0.6);
+  --bg: #0b0e14;
+  --surface: #11151e;
+  --card: #161b26;
+  --card-2: #1b2230;
+  --border: #232a36;
+  --border-strong: #2e3848;
+  --text: #fffce6; /* off-white da marca */
+  --text-muted: #9aa4b2;
+  --text-faint: #6b7480;
+  --accent: #1b63f2;
+  --accent-600: #0540f2;
+  --accent-700: #0f41a6;
+  --accent-soft: rgba(27, 99, 242, 0.16);
+  --pos: #16b981;
+  --neg: #ef4444;
+  --warn: #f59e0b;
+  --pos-soft: rgba(22, 185, 129, 0.15);
+  --neg-soft: rgba(239, 68, 68, 0.15);
+  --warn-soft: rgba(245, 158, 11, 0.16);
+  --shadow: 0 12px 40px -16px rgba(0, 0, 0, 0.7);
 }
 
-/* ---------- 2. BASE ---------- */
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --card: #ffffff;
+  --card-2: #f2f4f8;
+  --border: #e6e8ec;
+  --border-strong: #d6dae0;
+  --text: #0b0e14;
+  --text-muted: #6b7280;
+  --text-faint: #9aa4b2;
+  --accent: #1b63f2;
+  --accent-600: #0540f2;
+  --accent-700: #0f41a6;
+  --accent-soft: rgba(27, 99, 242, 0.1);
+  --pos: #0e9f6e;
+  --neg: #e02424;
+  --warn: #d97706;
+  --pos-soft: rgba(14, 159, 110, 0.12);
+  --neg-soft: rgba(224, 36, 36, 0.1);
+  --warn-soft: rgba(217, 119, 6, 0.12);
+  --shadow: 0 10px 30px -18px rgba(16, 24, 40, 0.3);
+}
+
+/* ---------- BASE ---------- */
 body {
-  @apply text-offwhite antialiased;
-  background-color: var(--bg);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
   font-feature-settings: "cv11", "ss01";
 }
-
 ::selection {
-  background: var(--brand-soft);
-  color: var(--text);
+  background: var(--accent-soft);
 }
-
-/* Scrollbar discreta */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  scrollbar-color: var(--border-strong) transparent;
 }
 *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 *::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--border-strong);
   border-radius: 999px;
 }
 
-/* ---------- 3. TIPOGRAFIA ---------- */
-h1, h2, h3, h4, h5 {
-  @apply font-display tracking-tight text-offwhite;
+/* ---------- TIPOGRAFIA ---------- */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display), var(--font-inter), sans-serif;
+  color: var(--text);
+  letter-spacing: -0.01em;
 }
 h1 {
-  @apply text-2xl font-semibold md:text-3xl;
+  @apply text-2xl font-bold md:text-3xl;
   letter-spacing: -0.02em;
 }
 h2 {
   @apply text-lg font-semibold;
 }
-.text-eyebrow {
-  @apply text-xs font-medium uppercase tracking-[0.18em] text-brand-400;
+h3 {
+  @apply text-base font-semibold;
 }
 
-/* ---------- 4. MOTIVO DA MARCA (fundo de pontos + brilho) ---------- */
-.brand-bg {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
-/* Campo de pontos (halftone) com fade diagonal */
-.brand-bg::before {
-  content: "";
-  position: absolute;
-  inset: -10%;
-  background-image: radial-gradient(rgba(120, 150, 255, 0.16) 1px, transparent 1.4px);
-  background-size: 24px 24px;
-  -webkit-mask-image: linear-gradient(135deg, transparent 35%, black 75%, transparent 100%);
-  mask-image: linear-gradient(135deg, transparent 35%, black 75%, transparent 100%);
-  opacity: 0.7;
-}
-/* Brilho azul */
-.brand-bg::after {
-  content: "";
-  position: absolute;
-  top: -20%;
-  right: -10%;
-  width: 50rem;
-  height: 50rem;
-  background: radial-gradient(circle, rgba(27, 99, 242, 0.18), transparent 60%);
-  filter: blur(40px);
+/* ---------- UTILITÁRIOS DE TEMA ---------- */
+@layer utilities {
+  .tnum {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  .t-muted {
+    color: var(--text-muted);
+  }
+  .t-faint {
+    color: var(--text-faint);
+  }
+  .t-accent {
+    color: var(--accent);
+  }
+  .val-pos {
+    color: var(--pos);
+  }
+  .val-neg {
+    color: var(--neg);
+  }
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.16em];
+    color: var(--accent);
+  }
+  .hairline {
+    border-color: var(--border);
+  }
 }
 
-/* ---------- 5. COMPONENTES ---------- */
+/* ---------- COMPONENTES ---------- */
 @layer components {
   /* Botões */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition
-           disabled:opacity-50 bg-brand-500 text-white hover:bg-brand-600
-           shadow-[0_6px_20px_-6px_rgba(27,99,242,0.6)] ring-1 ring-inset ring-white/10;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50;
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 6px 18px -8px var(--accent-soft);
+  }
+  .btn-primary:hover {
+    background: var(--accent-600);
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition
-           disabled:opacity-50 bg-white/5 text-offwhite border border-white/10 hover:bg-white/10 hover:border-white/20;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition disabled:opacity-50;
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
   }
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition
-           disabled:opacity-50 bg-red-500/10 text-red-400 hover:bg-red-500/20;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition disabled:opacity-50;
+    background: var(--neg-soft);
+    color: var(--neg);
+  }
+  .btn-sm {
+    @apply rounded-lg px-2.5 py-1.5 text-xs;
   }
 
   /* Campos */
   .input {
-    @apply w-full rounded-xl border border-white/10 bg-ink-900/80 px-3.5 py-2.5 text-sm text-offwhite
-           placeholder:text-slate-500 outline-none transition
-           focus:border-brand-500 focus:ring-4 focus:ring-brand-500/15;
+    @apply w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .input::placeholder {
+    color: var(--text-faint);
+  }
+  .input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-soft);
   }
   select.input option {
-    @apply bg-ink-900 text-offwhite;
+    background: var(--surface);
+    color: var(--text);
   }
   .label {
-    @apply mb-1.5 block text-xs font-medium text-slate-400;
+    @apply mb-1.5 block text-xs font-medium;
+    color: var(--text-muted);
   }
 
   /* Superfícies */
   .card {
-    @apply rounded-2xl border border-white/10 p-5;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0)) ,
-      var(--surface);
+    border: 1px solid var(--border);
+    background: var(--card);
+    border-radius: 1rem;
     box-shadow: var(--shadow);
+    @apply p-5;
   }
   .card-flat {
-    @apply rounded-2xl border border-white/10 bg-ink-900/60 p-5;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 1rem;
+    @apply p-5;
   }
 
   /* KPI / métricas */
   .kpi-label {
-    @apply text-xs text-slate-400;
+    @apply text-xs font-medium;
+    color: var(--text-muted);
   }
   .kpi-value {
-    @apply mt-1 font-display text-2xl font-semibold tracking-tight;
+    @apply mt-1 text-2xl font-bold tnum;
+    color: var(--text);
   }
 
-  /* Badge / pílula */
-  .badge {
+  /* Pílulas de status (semânticas, discretas) */
+  .pill {
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .pill-pos {
+    color: var(--pos);
+    background: var(--pos-soft);
+  }
+  .pill-neg {
+    color: var(--neg);
+    background: var(--neg-soft);
+  }
+  .pill-warn {
+    color: var(--warn);
+    background: var(--warn-soft);
+  }
+  .pill-accent {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .pill-muted {
+    color: var(--text-muted);
+    background: var(--card-2);
   }
 
   /* Tabelas */
-  .t-head {
-    @apply text-left text-[11px] font-medium uppercase tracking-wider text-slate-500;
+  .th {
+    @apply text-left text-[11px] font-semibold uppercase tracking-wider;
+    color: var(--text-faint);
   }
-  .t-row {
-    @apply border-t border-white/[0.06] transition hover:bg-white/[0.02];
+  .tr {
+    border-top: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  .tr:hover {
+    background: var(--accent-soft);
+  }
+
+  /* Barra de progresso / consumo */
+  .track {
+    @apply h-1.5 w-full overflow-hidden rounded-full;
+    background: var(--card-2);
+  }
+  .track > span {
+    @apply block h-full rounded-full;
+    background: var(--accent);
+  }
+
+  /* Segmented switch (estilo iOS) */
+  .seg {
+    @apply inline-flex rounded-xl p-1;
+    background: var(--card-2);
+    border: 1px solid var(--border);
+  }
+  .seg > button {
+    @apply rounded-lg px-3 py-1.5 text-sm font-medium transition;
+    color: var(--text-muted);
+  }
+  .seg > button[data-active="true"] {
+    background: var(--card);
+    color: var(--text);
+    box-shadow: var(--shadow);
   }
 }

@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { processarMensagem } from "@/lib/agent";
-import { enviarTexto, baixarMidiaBase64 } from "@/lib/evolution";
+import { processarMensagem, PLANILHA_FLAG } from "@/lib/agent";
+import { enviarTexto, baixarMidiaBase64, enviarDocumento } from "@/lib/evolution";
 import { transcreverAudio } from "@/lib/openai";
+import { gerarPlanilhaFinanceira } from "@/lib/planilha";
 
 export const dynamic = "force-dynamic";
 
@@ -101,8 +102,27 @@ export async function POST(req: Request) {
 
     if (!texto && !imagemBase64) return NextResponse.json({ ok: true });
 
-    const resposta = await processarMensagem({ texto, imagemBase64, origem, sessao: numero });
+    let resposta = await processarMensagem({ texto, imagemBase64, origem, sessao: numero });
+
+    const querPlanilha = resposta.includes(PLANILHA_FLAG);
+    resposta = resposta.replace(PLANILHA_FLAG, "").trim() || "Aqui está sua planilha 👇";
     await enviarTexto(replyTo, resposta);
+
+    if (querPlanilha) {
+      try {
+        const buf = await gerarPlanilhaFinanceira("pessoal");
+        const ref = new Date().toISOString().slice(0, 7);
+        await enviarDocumento(
+          replyTo,
+          buf.toString("base64"),
+          `assessor-relatorio-${ref}.xlsx`,
+          "📊 Seu relatório financeiro completo."
+        );
+      } catch (e) {
+        console.error("[webhook] erro ao gerar/enviar planilha:", e);
+        await enviarTexto(replyTo, "Tive um problema ao gerar a planilha. Tenta de novo em instantes?");
+      }
+    }
 
     return NextResponse.json({ ok: true });
   } catch (e: any) {

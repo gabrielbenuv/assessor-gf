@@ -34,9 +34,9 @@ export default function IntegracoesPage() {
     carregar();
     setWebhook(`${window.location.origin}/api/webhook`);
     const p = new URLSearchParams(window.location.search).get("google");
-    if (p === "ok") setMsg("✅ Google Calendar conectado!");
-    if (p === "erro") setMsg("❌ Falha ao conectar o Google.");
-    if (p === "falta_credencial") setMsg("⚠️ Preencha e salve o Client ID/Secret antes de conectar.");
+    if (p === "ok") setMsg("Google Calendar conectado!");
+    if (p === "erro") setMsg("Falha ao conectar o Google.");
+    if (p === "falta_credencial") setMsg("Preencha e salve o Client ID/Secret antes de conectar.");
   }, []);
 
   async function salvar(e: React.FormEvent) {
@@ -48,11 +48,7 @@ export default function IntegracoesPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    if (r.ok) {
-      setMsg("✅ Chaves salvas.");
-      setValores({});
-      carregar();
-    }
+    if (r.ok) { setMsg("Chaves salvas."); setValores({}); carregar(); }
   }
 
   const grupos = Array.from(new Set(CAMPOS.map((c) => c.grupo)));
@@ -60,31 +56,29 @@ export default function IntegracoesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Integrações / Chaves</h1>
-        <p className="text-sm text-slate-400">As chaves são guardadas criptografadas no banco.</p>
+        <p className="eyebrow">Configuração</p>
+        <h1>Integrações & chaves</h1>
+        <p className="text-sm t-muted">As chaves ficam guardadas criptografadas no banco.</p>
       </div>
 
-      {msg && <div className="card bg-brand-500/10 text-sm text-brand-400">{msg}</div>}
+      {msg && <div className="card-flat text-sm t-accent">{msg}</div>}
 
       <div className="card">
-        <h2 className="mb-1 font-semibold">Webhook do WhatsApp</h2>
-        <p className="mb-2 text-sm text-slate-400">
-          Configure este endereço na sua instância da Evolution (evento <code>messages.upsert</code>):
-        </p>
-        <code className="block rounded-lg bg-white/10 px-3 py-2 text-sm">{webhook || "…"}</code>
+        <h2 className="mb-1">Webhook do WhatsApp</h2>
+        <p className="mb-2 text-sm t-muted">Configure este endereço na Evolution (evento <code>messages.upsert</code>):</p>
+        <code className="block rounded-lg border border-hair bg-[var(--card-2)] px-3 py-2 text-sm">{webhook || "…"}</code>
       </div>
 
       <form onSubmit={salvar} className="space-y-6">
         {grupos.map((g) => (
           <div key={g} className="card space-y-3">
-            <h2 className="font-semibold">{g}</h2>
+            <h2>{g}</h2>
             {CAMPOS.filter((c) => c.grupo === g).map((c) => {
               const st = status?.status[c.key];
               return (
                 <div key={c.key}>
                   <label className="label">
-                    {c.label}{" "}
-                    {st?.preenchido && <span className="text-emerald-400">• salvo ({st.preview})</span>}
+                    {c.label} {st?.preenchido && <span className="val-pos">• salvo ({st.preview})</span>}
                   </label>
                   <input
                     className="input"
@@ -102,8 +96,8 @@ export default function IntegracoesPage() {
                 <a href="/api/google/connect" className="btn-ghost">
                   {status?.googleConectado ? "Reconectar Google" : "Conectar Google Calendar"}
                 </a>
-                <span className={`text-sm ${status?.googleConectado ? "text-emerald-400" : "text-slate-400"}`}>
-                  {status?.googleConectado ? "conectado ✓" : "não conectado"}
+                <span className={`text-sm ${status?.googleConectado ? "val-pos" : "t-muted"}`}>
+                  {status?.googleConectado ? "conectado" : "não conectado"}
                 </span>
               </div>
             )}

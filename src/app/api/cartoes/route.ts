@@ -2,13 +2,17 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { guard } from "@/lib/guard";
 import { toCents } from "@/lib/money";
+import { normDominio } from "@/lib/finance";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
   const g = guard();
   if (g) return g;
+  const { searchParams } = new URL(req.url);
+  const dominio = searchParams.get("dominio");
   const cartoes = await prisma.cartao.findMany({
+    where: dominio ? { dominio } : undefined,
     orderBy: { apelido: "asc" },
     include: { banco: true },
   });
@@ -27,6 +31,7 @@ export async function POST(req: Request) {
     const cartao = await prisma.cartao.create({
       data: {
         apelido: body.apelido,
+        dominio: normDominio(body.dominio),
         bandeira: body.bandeira || null,
         diaFechamento: Number(body.diaFechamento),
         diaVencimento: Number(body.diaVencimento),

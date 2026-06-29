@@ -15,10 +15,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (body.categoriaId !== undefined) data.categoriaId = body.categoriaId || null;
   if (body.data !== undefined) data.data = new Date(body.data);
   if (body.tipo !== undefined) data.tipo = body.tipo;
-  if (body.pago !== undefined) {
-    data.pago = body.pago;
-    data.pagoEm = body.pago ? new Date() : null;
-  }
   const t = await prisma.transacao.update({ where: { id: params.id }, data });
   return NextResponse.json(t);
 }

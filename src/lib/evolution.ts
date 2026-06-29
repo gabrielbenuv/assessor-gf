@@ -35,6 +35,39 @@ export async function enviarTexto(numero: string, texto: string): Promise<void> 
   }
 }
 
+/** Envia um documento (base64) para um número. Usado pra mandar a planilha .xlsx. */
+export async function enviarDocumento(
+  numero: string,
+  base64: string,
+  fileName: string,
+  caption = "",
+  mimetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+): Promise<boolean> {
+  const { url, apiKey, instance } = await base();
+  if (!url || !apiKey || !instance) {
+    console.warn("[evolution] não configurado — documento não enviado:", fileName);
+    return false;
+  }
+  const resp = await fetch(`${url}/message/sendMedia/${instance}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: apiKey },
+    body: JSON.stringify({
+      number: numero,
+      mediatype: "document",
+      mimetype,
+      media: base64,
+      fileName,
+      caption,
+    }),
+  });
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => "");
+    console.error("[evolution] erro ao enviar documento:", resp.status, body);
+    return false;
+  }
+  return true;
+}
+
 /**
  * Baixa a mídia (base64) de uma mensagem recebida.
  * A Evolution expõe /chat/getBase64FromMediaMessage/{instance}.

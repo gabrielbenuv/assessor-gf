@@ -16,7 +16,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (body.ativo !== undefined) data.ativo = body.ativo;
   if (body.contaSalario !== undefined) {
     data.contaSalario = body.contaSalario;
-    if (body.contaSalario) await prisma.banco.updateMany({ data: { contaSalario: false } });
+    if (body.contaSalario) {
+      const atual = await prisma.banco.findUnique({ where: { id: params.id } });
+      await prisma.banco.updateMany({ where: { dominio: atual?.dominio ?? "pessoal" }, data: { contaSalario: false } });
+    }
   }
   if (body.contaReceber !== undefined) data.contaReceber = body.contaReceber;
   const banco = await prisma.banco.update({ where: { id: params.id }, data });

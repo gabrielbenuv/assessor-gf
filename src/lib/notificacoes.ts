@@ -1,8 +1,9 @@
 import { prisma } from "./prisma";
-import { nowZoned } from "./dates";
-import { listarContasAPagar, mesAtual, faturaEmAberto, consultarSaldo } from "./finance";
+import { nowZoned, TZ } from "./dates";
+import { listarContasAPagar, mesAtual, faturaEmAberto, consultarSaldo, gastosVsTeto } from "./finance";
 import { formatBRL } from "./money";
 import { enviarTexto } from "./evolution";
+import { toZonedTime } from "date-fns-tz";
 
 function clampDia(d: number): number {
   return Math.max(1, Math.min(28, d));
@@ -167,6 +168,40 @@ export async function rodarNotificacoes(opts: { force?: boolean } = {}): Promise
           enviados.push(`cartao_fech:${cartao.apelido}`);
         }
       }
+    }
+  }
+
+  // 4b) Lembrete de parcela avulsa vencendo (X dias antes)
+  if (!opts.force && prefs.lembreteVencimentoAtivo && naHora) {
+    const parcelas = await prisma.parcela.findMany({
+      where: { mesCompetencia: mes, parcelamento: { forma: "avulso", ativo: true } },
+      include: { parcelamento: true, transacoes: { where: { origemTipo: "baixa_parcela" } } },
+    });
+    for (const p of parcelas) {
+      if (p.transacoes.length > 0) continue; // já paga
+      const diaVenc = toZonedTime(p.vencimento, TZ).getDate();
+      if (dia !== clampDia(diaVenc - prefs.contasFixasDiasAntes)) continue;
+      const marker = `notif_parcela_${p.id}`;
+      if ((await getMarker(marker)) === mes) continue;
+      await enviarParaAutorizados(
+        `📦 Parcela ${p.numero}/${p.total} de *${p.parcelamento.descricao}* vence dia ${diaVenc} — ${formatBRL(p.valorPrevistoCents)}.\nJá pagou? Me diz de qual conta saiu que eu registro.`
+      );
+      await setMarker(marker, mes);
+      enviados.push(`parcela:${p.parcelamento.descricao}`);
+    }
+  }
+
+  // 4c) Alerta de estouro de teto (uma vez por mês, por categoria)
+  if (!opts.force && prefs.lembreteVencimentoAtivo && naHora) {
+    const gv = await gastosVsTeto("mes");
+    for (const c of gv.itens.filter((i) => i.estourou)) {
+      const marker = `notif_teto_${c.nome.replace(/\W+/g, "_")}`;
+      if ((await getMarker(marker)) === mes) continue;
+      await enviarParaAutorizados(
+        `⚠️ Teto estourado em *${c.nome}*: ${c.gastoFormatado} de ${c.tetoFormatado} (${c.pct}%).`
+      );
+      await setMarker(marker, mes);
+      enviados.push(`teto:${c.nome}`);
     }
   }
 

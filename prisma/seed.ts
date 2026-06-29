@@ -2,42 +2,62 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const categoriasGasto = [
-  { nome: "Alimentação", emoji: "🍽️" },
-  { nome: "Mercado", emoji: "🛒" },
-  { nome: "Transporte", emoji: "🚗" },
-  { nome: "Moradia/Contas", emoji: "🏠" },
-  { nome: "Saúde", emoji: "💊" },
-  { nome: "Lazer", emoji: "🎉" },
-  { nome: "Assinaturas", emoji: "📺" },
-  { nome: "Educação", emoji: "📚" },
-  { nome: "Compras", emoji: "🛍️" },
-  { nome: "Outros", emoji: "📦" },
-];
-
-const categoriasEntrada = [
-  { nome: "Salário", emoji: "💰" },
-  { nome: "Reembolso", emoji: "↩️" },
-  { nome: "Transferência", emoji: "🔁" },
-  { nome: "Outros", emoji: "📥" },
-];
+// Taxonomia de categorias por domínio.
+const TAXONOMIA: Record<string, { gasto: string[]; entrada: string[] }> = {
+  pessoal: {
+    gasto: [
+      "Moradia/Contas",
+      "Alimentação",
+      "Mercado",
+      "Transporte",
+      "Saúde",
+      "Lazer",
+      "Casa/Móveis",
+      "Educação",
+      "Assinaturas",
+      "Compras",
+      "Outros",
+    ],
+    entrada: ["Salário", "Reembolso", "Transferência", "Investimentos", "Outros"],
+  },
+  chess: {
+    gasto: ["Ferramentas", "Software", "Marketing", "Impostos", "Pessoal/Freelas", "Serviços", "Outros"],
+    entrada: ["Vendas", "Serviços", "Reembolso", "Outros"],
+  },
+  klivy: {
+    gasto: ["Ferramentas", "Software", "Marketing", "Impostos", "Pessoal/Freelas", "Serviços", "Outros"],
+    entrada: ["Vendas", "Serviços", "Reembolso", "Outros"],
+  },
+};
 
 async function main() {
-  for (const c of categoriasGasto) {
-    await prisma.categoria.upsert({
-      where: { nome_tipo: { nome: c.nome, tipo: "gasto" } },
+  for (const [dominio, { gasto, entrada }] of Object.entries(TAXONOMIA)) {
+    for (const nome of gasto) {
+      await prisma.categoria.upsert({
+        where: { nome_tipo_dominio: { nome, tipo: "gasto", dominio } },
+        update: {},
+        create: { nome, tipo: "gasto", dominio },
+      });
+    }
+    for (const nome of entrada) {
+      await prisma.categoria.upsert({
+        where: { nome_tipo_dominio: { nome, tipo: "entrada", dominio } },
+        update: {},
+        create: { nome, tipo: "entrada", dominio },
+      });
+    }
+    // garante o perfil financeiro do domínio
+    await prisma.perfilFinanceiro.upsert({
+      where: { dominio },
       update: {},
-      create: { nome: c.nome, tipo: "gasto", emoji: c.emoji },
+      create: { dominio },
     });
   }
-  for (const c of categoriasEntrada) {
-    await prisma.categoria.upsert({
-      where: { nome_tipo: { nome: c.nome, tipo: "entrada" } },
-      update: {},
-      create: { nome: c.nome, tipo: "entrada", emoji: c.emoji },
-    });
-  }
-  console.log("✓ Categorias padrão criadas.");
+
+  // preferências de notificação (linha única)
+  await prisma.notificacao.upsert({ where: { id: "default" }, update: {}, create: { id: "default" } });
+
+  console.log("✓ Categorias por domínio, perfis e preferências criados.");
 }
 
 main()

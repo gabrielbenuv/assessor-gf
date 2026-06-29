@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { guard } from "@/lib/guard";
-import { processarMensagem } from "@/lib/agent";
+import { processarMensagem, PLANILHA_FLAG } from "@/lib/agent";
 import { limparHistorico } from "@/lib/memory";
 
 export const dynamic = "force-dynamic";
@@ -23,13 +23,15 @@ export async function POST(req: Request) {
   }
 
   try {
-    const resposta = await processarMensagem({
+    let resposta = await processarMensagem({
       texto: texto || "",
       imagemBase64,
       origem: imagemBase64 ? "foto" : "texto",
       sessao: "simulador",
     });
-    return NextResponse.json({ resposta });
+    const planilha = resposta.includes(PLANILHA_FLAG);
+    resposta = resposta.replace(PLANILHA_FLAG, "").trim();
+    return NextResponse.json({ resposta, planilha });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "Erro ao processar." }, { status: 500 });
   }

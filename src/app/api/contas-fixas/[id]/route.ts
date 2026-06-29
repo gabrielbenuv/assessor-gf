@@ -11,6 +11,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const body = await req.json().catch(() => ({}));
   const data: any = {};
   if (body.nome !== undefined) data.nome = body.nome;
+  if (body.tipo !== undefined) {
+    data.tipo = body.tipo;
+    data.isAssinatura = body.tipo === "assinatura";
+  } else if (body.isAssinatura !== undefined) {
+    data.isAssinatura = body.isAssinatura;
+    data.tipo = body.isAssinatura ? "assinatura" : "conta_fixa";
+  }
+  if (body.recorrencia !== undefined) data.recorrencia = body.recorrencia;
   if (body.valorPrevisto !== undefined)
     data.valorPrevistoCents = body.valorPrevisto ? toCents(body.valorPrevisto) : null;
   if (body.diaVencimento !== undefined) data.diaVencimento = Number(body.diaVencimento);
